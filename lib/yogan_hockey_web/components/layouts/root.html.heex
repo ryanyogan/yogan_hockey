@@ -4,10 +4,51 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <meta name="description" content="Hockey stats for Andrew Yogan and the NHL" />
-    <.live_title default="YoganHockey" suffix=" | Hockey Stats">
+
+    <%!-- Primary Meta Tags --%>
+    <.live_title default="YoganHockey" suffix=" | Live NHL Stats & Player Tracking">
       {assigns[:page_title]}
     </.live_title>
+    <meta name="title" content="YoganHockey | Live NHL Stats & Player Tracking" />
+    <meta name="description" content="Real-time NHL scores, standings, and stats. Follow Andrew Yogan's career from the AHL to DEL. Live game updates, team schedules, and comprehensive hockey statistics." />
+    <meta name="keywords" content="NHL, hockey, stats, live scores, Andrew Yogan, DEL, standings, teams, player stats" />
+    <meta name="author" content="YoganHockey" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
+
+    <%!-- Theme & App --%>
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="YoganHockey" />
+
+    <%!-- Open Graph / Facebook / iMessage --%>
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://yoganhockey.com/" />
+    <meta property="og:title" content="YoganHockey | Live NHL Stats & Player Tracking" />
+    <meta property="og:description" content="Real-time NHL scores, standings, and stats. Follow Andrew Yogan's career. Live game updates and comprehensive hockey statistics." />
+    <meta property="og:image" content="https://yoganhockey.com/images/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="YoganHockey - Live NHL Stats featuring career statistics" />
+    <meta property="og:site_name" content="YoganHockey" />
+    <meta property="og:locale" content="en_US" />
+
+    <%!-- Twitter / X --%>
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://yoganhockey.com/" />
+    <meta name="twitter:title" content="YoganHockey | Live NHL Stats" />
+    <meta name="twitter:description" content="Real-time NHL scores, standings, and stats. Follow Andrew Yogan's career from AHL to DEL." />
+    <meta name="twitter:image" content="https://yoganhockey.com/images/og-image.svg" />
+    <meta name="twitter:image:alt" content="YoganHockey - Live NHL Stats" />
+    <meta name="twitter:creator" content="@yoganhockey" />
+
+    <%!-- Favicon --%>
+    <link rel="icon" type="image/svg+xml" href={~p"/images/logo.svg"} />
+    <link rel="icon" type="image/x-icon" href={~p"/favicon.ico"} />
+    <link rel="apple-touch-icon" sizes="180x180" href={~p"/images/logo.svg"} />
+    <link rel="manifest" href="/site.webmanifest" />
 
     <%!-- JetBrains Mono font for stats display --%>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -88,9 +129,10 @@
       <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-12">
           <%!-- Logo --%>
-          <a href="/" class="flex items-center gap-2 font-bold text-lg tracking-tight">
-            <span class="text-xl">🏒</span>
-            <span class="hidden sm:inline">YoganHockey</span>
+          <a href="/" class="flex items-center gap-1 group">
+            <span class="font-mono font-bold text-sm tracking-tighter uppercase">
+              <span class="text-primary">YOGAN</span><span class="text-base-content/80">HOCKEY</span>
+            </span>
           </a>
 
           <%!-- Desktop Nav --%>
