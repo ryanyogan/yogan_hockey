@@ -1,0 +1,470 @@
+/* YoganHockey - ESPN-Style Professional Sports Theme */
+
+@import "tailwindcss" source(none);
+@source "../css";
+@source "../js";
+@source "../../lib/yogan_hockey_web";
+
+/* Heroicons plugin */
+@plugin "../vendor/heroicons";
+
+/* daisyUI Tailwind Plugin */
+@plugin "../vendor/daisyui" {
+  themes: false;
+}
+
+/* Professional Sports Dark Theme */
+@plugin "../vendor/daisyui-theme" {
+  name: "dark";
+  default: true;
+  prefersdark: true;
+  color-scheme: "dark";
+  /* Background: Near black */
+  --color-base-100: oklch(12% 0.005 250);
+  --color-base-200: oklch(9% 0.005 250);
+  --color-base-300: oklch(6% 0.005 250);
+  --color-base-content: oklch(95% 0.005 250);
+  /* Primary: ESPN Blue */
+  --color-primary: oklch(50% 0.20 250);
+  --color-primary-content: oklch(98% 0.01 250);
+  /* Secondary: Steel Gray */
+  --color-secondary: oklch(45% 0.02 250);
+  --color-secondary-content: oklch(98% 0.01 250);
+  /* Accent: Gold */
+  --color-accent: oklch(75% 0.18 85);
+  --color-accent-content: oklch(15% 0.02 85);
+  /* Neutral */
+  --color-neutral: oklch(25% 0.01 250);
+  --color-neutral-content: oklch(90% 0.005 250);
+  /* Status colors */
+  --color-info: oklch(60% 0.18 250);
+  --color-info-content: oklch(98% 0.01 250);
+  --color-success: oklch(65% 0.20 150);
+  --color-success-content: oklch(15% 0.02 150);
+  --color-warning: oklch(75% 0.18 85);
+  --color-warning-content: oklch(15% 0.02 85);
+  --color-error: oklch(55% 0.25 25);
+  --color-error-content: oklch(98% 0.01 25);
+  /* Angular corners */
+  --radius-selector: 0.125rem;
+  --radius-field: 0.125rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/* Professional Sports Light Theme */
+@plugin "../vendor/daisyui-theme" {
+  name: "light";
+  default: false;
+  prefersdark: false;
+  color-scheme: "light";
+  /* Background: Light gray */
+  --color-base-100: oklch(98% 0.002 250);
+  --color-base-200: oklch(95% 0.005 250);
+  --color-base-300: oklch(90% 0.008 250);
+  --color-base-content: oklch(15% 0.01 250);
+  /* Primary: ESPN Blue */
+  --color-primary: oklch(45% 0.22 250);
+  --color-primary-content: oklch(98% 0.01 250);
+  /* Secondary: Dark gray */
+  --color-secondary: oklch(30% 0.01 250);
+  --color-secondary-content: oklch(98% 0.01 250);
+  /* Accent: Gold */
+  --color-accent: oklch(65% 0.18 85);
+  --color-accent-content: oklch(15% 0.02 85);
+  /* Neutral */
+  --color-neutral: oklch(35% 0.01 250);
+  --color-neutral-content: oklch(98% 0.005 250);
+  /* Status colors */
+  --color-info: oklch(50% 0.20 250);
+  --color-info-content: oklch(98% 0.01 250);
+  --color-success: oklch(50% 0.22 150);
+  --color-success-content: oklch(98% 0.01 150);
+  --color-warning: oklch(65% 0.18 85);
+  --color-warning-content: oklch(15% 0.02 85);
+  --color-error: oklch(50% 0.25 25);
+  --color-error-content: oklch(98% 0.01 25);
+  /* Angular corners */
+  --radius-selector: 0.125rem;
+  --radius-field: 0.125rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/* LiveView variants */
+@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
+@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
+@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* LiveView wrapper transparency */
+[data-phx-session], [data-phx-teleported-src] { display: contents }
+
+/* Typography - Inter for UI, Mono for stats */
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* ============================================
+   ESPN-STYLE COMPONENT CLASSES
+   ============================================ */
+
+@layer components {
+  /* Scoreboard Ticker */
+  .scoreboard-ticker {
+    @apply flex gap-1 overflow-x-auto pb-2;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ticker-game {
+    @apply flex-shrink-0 bg-base-200 border border-base-300 p-2 min-w-[140px];
+    @apply hover:bg-base-300 transition-colors cursor-pointer;
+    scroll-snap-align: start;
+  }
+
+  .ticker-game.live {
+    @apply border-l-2 border-l-error;
+  }
+
+  .ticker-game.final {
+    @apply opacity-80;
+  }
+
+  .ticker-team {
+    @apply flex items-center justify-between text-xs;
+  }
+
+  .ticker-team-info {
+    @apply flex items-center gap-1.5;
+  }
+
+  .ticker-logo {
+    @apply w-4 h-4 object-contain;
+  }
+
+  .ticker-abbrev {
+    @apply font-medium uppercase tracking-wide;
+  }
+
+  .ticker-score {
+    @apply font-mono font-bold;
+  }
+
+  .ticker-score.winner {
+    @apply text-primary;
+  }
+
+  .ticker-status {
+    @apply text-[10px] text-center mt-1 uppercase tracking-wider;
+  }
+
+  .ticker-status.live {
+    @apply text-error font-medium;
+  }
+
+  /* Data Cards */
+  .data-card {
+    @apply bg-base-200 border border-base-300;
+  }
+
+  .data-card-header {
+    @apply flex items-center justify-between px-3 py-2 border-b border-base-300 bg-base-300/50;
+  }
+
+  .data-card-title {
+    @apply text-xs font-bold uppercase tracking-wider;
+  }
+
+  .data-card-body {
+    @apply p-0;
+  }
+
+  /* Standings Table */
+  .standings-table {
+    @apply w-full text-xs;
+  }
+
+  .standings-table th {
+    @apply px-2 py-1.5 text-left font-medium uppercase tracking-wider text-base-content/60 bg-base-300/30;
+  }
+
+  .standings-table th.stat {
+    @apply text-center w-10;
+  }
+
+  .standings-table td {
+    @apply px-2 py-1.5 border-b border-base-300/50;
+  }
+
+  .standings-table td.stat {
+    @apply text-center font-mono;
+  }
+
+  .standings-table tr:hover {
+    @apply bg-base-300/30;
+  }
+
+  .standings-table .team-cell {
+    @apply flex items-center gap-2;
+  }
+
+  .standings-table .rank {
+    @apply w-4 text-base-content/40 font-mono text-[10px];
+  }
+
+  .standings-table .team-logo {
+    @apply w-5 h-5 object-contain;
+  }
+
+  .standings-table .team-name {
+    @apply font-medium truncate;
+  }
+
+  .standings-table .playoff-line {
+    @apply border-b-2 border-primary/50;
+  }
+
+  /* Featured Player Card */
+  .featured-card {
+    @apply bg-gradient-to-r from-primary/10 via-base-200 to-accent/10 border border-base-300;
+    @apply relative overflow-hidden;
+  }
+
+  .featured-card::before {
+    content: "";
+    @apply absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent;
+  }
+
+  .featured-badge {
+    @apply absolute top-0 right-0 bg-accent text-accent-content text-[10px] font-bold uppercase px-2 py-0.5;
+  }
+
+  .featured-stats {
+    @apply grid grid-cols-3 sm:grid-cols-6 gap-2 mt-4;
+  }
+
+  .featured-stat {
+    @apply text-center;
+  }
+
+  .featured-stat-value {
+    @apply text-xl sm:text-2xl font-mono font-bold;
+  }
+
+  .featured-stat-label {
+    @apply text-[10px] uppercase tracking-wider text-base-content/50;
+  }
+
+  /* Game Cards (Enhanced) */
+  .game-card {
+    @apply bg-base-200 border border-base-300 overflow-hidden;
+  }
+
+  .game-card.live {
+    @apply border-l-2 border-l-error;
+  }
+
+  .game-card-header {
+    @apply flex items-center justify-between px-3 py-1.5 bg-base-300/50 text-[10px] uppercase tracking-wider;
+  }
+
+  .game-card-body {
+    @apply p-3;
+  }
+
+  .game-team-row {
+    @apply flex items-center justify-between py-1;
+  }
+
+  .game-team-info {
+    @apply flex items-center gap-2;
+  }
+
+  .game-team-logo {
+    @apply w-5 h-5 object-contain;
+  }
+
+  .game-team-name {
+    @apply font-medium text-sm;
+  }
+
+  .game-team-record {
+    @apply text-[10px] text-base-content/50 ml-1;
+  }
+
+  .game-score {
+    @apply font-mono text-lg font-bold;
+  }
+
+  .game-score.winner {
+    @apply text-primary;
+  }
+
+  .game-status {
+    @apply text-center text-xs py-2 border-t border-base-300/50 text-base-content/60;
+  }
+
+  .game-status.live {
+    @apply text-error font-medium;
+  }
+
+  /* Team Grid */
+  .team-grid {
+    @apply grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-16 gap-1;
+  }
+
+  .team-tile {
+    @apply aspect-square bg-base-200 border border-base-300 p-1.5;
+    @apply flex flex-col items-center justify-center gap-0.5;
+    @apply hover:bg-base-300 hover:border-primary/50 transition-all cursor-pointer;
+  }
+
+  .team-tile-logo {
+    @apply w-6 h-6 sm:w-7 sm:h-7 object-contain;
+  }
+
+  .team-tile-abbrev {
+    @apply text-[8px] sm:text-[9px] font-bold uppercase tracking-wider;
+  }
+
+  /* Section Headers */
+  .section-header {
+    @apply flex items-center justify-between py-2 border-b border-base-300;
+  }
+
+  .section-title {
+    @apply text-sm font-bold uppercase tracking-wider;
+  }
+
+  .section-link {
+    @apply text-xs text-primary hover:underline;
+  }
+
+  /* Stats Badges */
+  .stat-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 bg-base-300 text-xs font-mono;
+  }
+
+  .stat-badge.positive {
+    @apply bg-success/20 text-success;
+  }
+
+  .stat-badge.negative {
+    @apply bg-error/20 text-error;
+  }
+
+  /* Live Indicator */
+  .live-indicator {
+    @apply inline-flex items-center gap-1 text-error text-[10px] font-bold uppercase tracking-wider;
+  }
+
+  .live-indicator::before {
+    content: "";
+    @apply w-1.5 h-1.5 bg-error rounded-full animate-pulse;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply font-medium shadow-none border-0 text-xs uppercase tracking-wider;
+  }
+
+  .btn-primary {
+    @apply bg-primary hover:bg-primary/80 text-primary-content;
+  }
+
+  .btn-ghost {
+    @apply hover:bg-base-300;
+  }
+
+  /* Navigation */
+  .nav-link {
+    @apply px-3 py-2 text-xs font-medium uppercase tracking-wider;
+    @apply hover:bg-base-300 transition-colors;
+  }
+
+  .nav-link.active {
+    @apply text-primary border-b-2 border-primary;
+  }
+
+  /* Loading skeleton */
+  .loading-skeleton {
+    @apply bg-base-300 animate-pulse;
+  }
+
+  /* Conference tabs */
+  .conf-tabs {
+    @apply flex border-b border-base-300;
+  }
+
+  .conf-tab {
+    @apply flex-1 py-2 text-center text-xs font-medium uppercase tracking-wider;
+    @apply cursor-pointer hover:bg-base-300/50 transition-colors;
+  }
+
+  .conf-tab.active {
+    @apply border-b-2 border-primary text-primary;
+  }
+}
+
+/* Scrollbar utilities */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply font-sans bg-base-100 text-base-content;
+}
+
+/* Better focus states */
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-primary;
+}
+
+/* Mobile safe areas */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .navbar {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  footer {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Touch-friendly on mobile */
+@media (max-width: 640px) {
+  .btn, a, button {
+    min-height: 44px;
+  }
+
+  .ticker-game {
+    min-width: 120px;
+  }
+}
+
+/* Responsive text */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+}

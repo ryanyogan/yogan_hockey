@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <meta name="description" content="Hockey stats for Andrew Yogan and the NHL" />
+    <.live_title default="YoganHockey" suffix=" | Hockey Stats">
+      {assigns[:page_title]}
+    </.live_title>
+
+    <%!-- JetBrains Mono font for stats display --%>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+    </script>
+    <script>
+      (() => {
+        const setTheme = (theme) => {
+          if (theme === "system") {
+            localStorage.removeItem("phx:theme");
+            const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            document.documentElement.setAttribute("data-theme", prefersDark ? "dark" : "light");
+          } else {
+            localStorage.setItem("phx:theme", theme);
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+        };
+
+        // Set initial theme
+        const savedTheme = localStorage.getItem("phx:theme");
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else {
+          setTheme("system");
+        }
+
+        // Listen for storage changes (other tabs)
+        window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
+
+        // Listen for theme toggle events
+        window.addEventListener("phx:set-theme", (e) => setTheme(e.detail.theme || e.target.dataset.phxTheme));
+
+        // Listen for system preference changes
+        window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+          if (!localStorage.getItem("phx:theme")) {
+            setTheme("system");
+          }
+        });
+      })();
+    </script>
+  </head>
+  <body class="min-h-full bg-base-100 text-base-content font-sans antialiased">
+    <%!-- ESPN-style Header --%>
+    <header class="sticky top-0 z-50 bg-base-200 border-b border-base-300">
+      <%!-- Top Bar --%>
+      <div class="bg-base-300">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-8">
+          <div class="flex items-center gap-4 text-[10px] uppercase tracking-wider text-base-content/60">
+            <span>NHL</span>
+            <span>DEL2</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1 bg-base-100 p-0.5">
+              <button
+                class="p-1.5 hover:bg-base-300 transition-colors"
+                onclick="window.dispatchEvent(new CustomEvent('phx:set-theme', {detail: {theme: 'light'}}))"
+                title="Light"
+              >
+                <.icon name="hero-sun-micro" class="w-3.5 h-3.5" />
+              </button>
+              <button
+                class="p-1.5 hover:bg-base-300 transition-colors"
+                onclick="window.dispatchEvent(new CustomEvent('phx:set-theme', {detail: {theme: 'dark'}}))"
+                title="Dark"
+              >
+                <.icon name="hero-moon-micro" class="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%!-- Main Nav --%>
+      <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-12">
+          <%!-- Logo --%>
+          <a href="/" class="flex items-center gap-2 font-bold text-lg tracking-tight">
+            <span class="text-xl">🏒</span>
+            <span class="hidden sm:inline">YoganHockey</span>
+          </a>
+
+          <%!-- Desktop Nav --%>
+          <div class="hidden md:flex items-center">
+            <a href="/" class="nav-link">Scores</a>
+            <a href="/nhl" class="nav-link">Standings</a>
+            <a href="/nhl" class="nav-link">Teams</a>
+            <a href="/yogan" class="nav-link">Yogan</a>
+            <a href="/nhl/live" class="nav-link">
+              <span class="live-indicator">Live</span>
+            </a>
+          </div>
+
+          <%!-- Mobile Menu Button --%>
+          <label for="mobile-menu" class="md:hidden btn btn-ghost btn-sm p-2">
+            <.icon name="hero-bars-3" class="w-5 h-5" />
+          </label>
+        </div>
+      </nav>
+    </header>
+
+    <%!-- Mobile Menu --%>
+    <input type="checkbox" id="mobile-menu" class="hidden peer" />
+    <div class="fixed inset-0 z-40 hidden peer-checked:flex flex-col bg-base-100 md:hidden">
+      <div class="flex items-center justify-between h-12 px-4 border-b border-base-300">
+        <span class="font-bold">Menu</span>
+        <label for="mobile-menu" class="btn btn-ghost btn-sm p-2">
+          <.icon name="hero-x-mark" class="w-5 h-5" />
+        </label>
+      </div>
+      <div class="flex-1 p-4 space-y-1">
+        <label for="mobile-menu">
+          <a href="/" class="block p-3 hover:bg-base-200 font-medium">Scores</a>
+        </label>
+        <label for="mobile-menu">
+          <a href="/nhl" class="block p-3 hover:bg-base-200 font-medium">Standings</a>
+        </label>
+        <label for="mobile-menu">
+          <a href="/nhl" class="block p-3 hover:bg-base-200 font-medium">Teams</a>
+        </label>
+        <label for="mobile-menu">
+          <a href="/yogan" class="block p-3 hover:bg-base-200 font-medium">Andrew Yogan</a>
+        </label>
+        <label for="mobile-menu">
+          <a href="/nhl/live" class="block p-3 hover:bg-base-200 font-medium">
+            <span class="live-indicator">Live Scores</span>
+          </a>
+        </label>
+      </div>
+    </div>
+
+    <%!-- Main Content --%>
+    <main class="min-h-screen bg-base-100">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        {@inner_content}
+      </div>
+    </main>
+
+    <%!-- Minimal Footer --%>
+    <footer class="bg-base-200 border-t border-base-300 py-4">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between text-xs text-base-content/50">
+        <span>YoganHockey © 2026</span>
+        <span>Data: ESPN & Elite Prospects</span>
+      </div>
+    </footer>
+
+    <%!-- Flash Messages --%>
+    <div id="flash-group" aria-live="polite" class="fixed top-16 right-4 z-50 space-y-2">
+      <.flash kind={:info} flash={@flash} />
+      <.flash kind={:error} flash={@flash} />
+    </div>
+  </body>
+</html>
