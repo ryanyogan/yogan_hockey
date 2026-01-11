@@ -7,6 +7,7 @@ defmodule YoganHockeyWeb.PlayerLive do
   alias YoganHockey.NHL
 
   import YoganHockeyWeb.HockeyComponents
+  import YoganHockeyWeb.Helpers.StatsHelpers
 
   @impl true
   def mount(%{"id" => player_id}, _session, socket) do
@@ -190,30 +191,5 @@ defmodule YoganHockeyWeb.PlayerLive do
       <% end %>
     </div>
     """
-  end
-
-  defp format_plus_minus(value) when is_integer(value) and value > 0, do: "+#{value}"
-  defp format_plus_minus(value) when is_integer(value), do: "#{value}"
-  defp format_plus_minus(_), do: "0"
-
-  defp format_date(nil), do: nil
-  defp format_date(date_string) when is_binary(date_string) do
-    case Date.from_iso8601(date_string) do
-      {:ok, date} -> Calendar.strftime(date, "%B %d, %Y")
-      _ -> date_string
-    end
-  end
-  defp format_date(date), do: date
-
-  defp career_total(stats, key) do
-    Enum.reduce(stats, 0, fn season, acc ->
-      acc + (Map.get(season, key) || 0)
-    end)
-  end
-
-  defp points_per_game(stats) do
-    total_games = career_total(stats, :games_played)
-    total_points = career_total(stats, :points)
-    if total_games > 0, do: Float.round(total_points / total_games, 2), else: 0.0
   end
 end

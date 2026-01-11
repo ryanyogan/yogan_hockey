@@ -6,7 +6,7 @@ defmodule YoganHockeyWeb.TeamLive do
 
   alias YoganHockey.NHL
 
-  import YoganHockeyWeb.HockeyComponents
+  import YoganHockeyWeb.Helpers.StatsHelpers, only: [format_diff: 1, diff_class: 1, get_stat: 2]
 
   @impl true
   def mount(%{"id" => team_id}, _session, socket) do
@@ -97,19 +97,19 @@ defmodule YoganHockeyWeb.TeamLive do
           <%!-- Stats Row --%>
           <div :if={@standings} class="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-base-300">
             <div class="text-center">
-              <div class="text-xl font-mono font-bold text-success">{get_stat(@standings, "wins")}</div>
+              <div class="text-xl font-mono font-bold text-success">{get_stat(@standings.stats, "wins")}</div>
               <div class="text-[10px] uppercase text-base-content/50">W</div>
             </div>
             <div class="text-center">
-              <div class="text-xl font-mono font-bold text-error">{get_stat(@standings, "losses")}</div>
+              <div class="text-xl font-mono font-bold text-error">{get_stat(@standings.stats, "losses")}</div>
               <div class="text-[10px] uppercase text-base-content/50">L</div>
             </div>
             <div class="text-center">
-              <div class="text-xl font-mono font-bold">{get_stat(@standings, "otLosses")}</div>
+              <div class="text-xl font-mono font-bold">{get_stat(@standings.stats, "otLosses")}</div>
               <div class="text-[10px] uppercase text-base-content/50">OTL</div>
             </div>
             <div class="text-center">
-              <div class="text-xl font-mono font-bold text-primary">{get_stat(@standings, "points")}</div>
+              <div class="text-xl font-mono font-bold text-primary">{get_stat(@standings.stats, "points")}</div>
               <div class="text-[10px] uppercase text-base-content/50">PTS</div>
             </div>
           </div>
@@ -256,20 +256,20 @@ defmodule YoganHockeyWeb.TeamLive do
             </div>
             <div class="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div class="text-center">
-                <div class="text-2xl font-mono font-bold">{get_stat(@standings, "gamesPlayed")}</div>
+                <div class="text-2xl font-mono font-bold">{get_stat(@standings.stats, "gamesPlayed")}</div>
                 <div class="text-[10px] uppercase text-base-content/50">Games Played</div>
               </div>
               <div class="text-center">
-                <div class="text-2xl font-mono font-bold">{format_number(get_stat(@standings, "goalsFor"))}</div>
+                <div class="text-2xl font-mono font-bold">{get_stat(@standings.stats, "goalsFor")}</div>
                 <div class="text-[10px] uppercase text-base-content/50">Goals For</div>
               </div>
               <div class="text-center">
-                <div class="text-2xl font-mono font-bold">{format_number(get_stat(@standings, "goalsAgainst"))}</div>
+                <div class="text-2xl font-mono font-bold">{get_stat(@standings.stats, "goalsAgainst")}</div>
                 <div class="text-[10px] uppercase text-base-content/50">Goals Against</div>
               </div>
               <div class="text-center">
-                <div class={["text-2xl font-mono font-bold", diff_class(get_stat(@standings, "pointDifferential"))]}>
-                  {format_diff(get_stat(@standings, "pointDifferential"))}
+                <div class={["text-2xl font-mono font-bold", diff_class(get_stat(@standings.stats, "pointDifferential"))]}>
+                  {format_diff(get_stat(@standings.stats, "pointDifferential"))}
                 </div>
                 <div class="text-[10px] uppercase text-base-content/50">Diff</div>
               </div>
@@ -309,27 +309,6 @@ defmodule YoganHockeyWeb.TeamLive do
       _ -> date_string
     end
   end
-
-  defp get_stat(nil, _key), do: "-"
-  defp get_stat(%{stats: stats}, key) when is_map(stats) do
-    case Map.get(stats, key) do
-      nil -> "-"
-      value when is_float(value) -> round(value)
-      value -> value
-    end
-  end
-  defp get_stat(_, _), do: "-"
-
-  defp format_number(n) when is_number(n), do: round(n)
-  defp format_number(n), do: n
-
-  defp format_diff(n) when is_number(n) and n > 0, do: "+#{round(n)}"
-  defp format_diff(n) when is_number(n), do: "#{round(n)}"
-  defp format_diff(_), do: "-"
-
-  defp diff_class(n) when is_number(n) and n > 0, do: "text-success"
-  defp diff_class(n) when is_number(n) and n < 0, do: "text-error"
-  defp diff_class(_), do: ""
 
   defp sort_roster(roster) when is_list(roster) do
     Enum.sort_by(roster, fn player ->

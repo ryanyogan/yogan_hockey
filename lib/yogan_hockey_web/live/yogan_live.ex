@@ -7,6 +7,7 @@ defmodule YoganHockeyWeb.YoganLive do
   alias YoganHockey.DEL2
 
   import YoganHockeyWeb.HockeyComponents
+  import YoganHockeyWeb.Helpers.StatsHelpers
 
   @impl true
   def mount(_params, _session, socket) do
@@ -291,25 +292,5 @@ defmodule YoganHockeyWeb.YoganLive do
       </div>
     </div>
     """
-  end
-
-  defp format_plus_minus(value) when is_integer(value) and value > 0, do: "+#{value}"
-  defp format_plus_minus(value) when is_integer(value), do: "#{value}"
-  defp format_plus_minus(_), do: "0"
-
-  defp career_total(stats, key) do
-    Enum.reduce(stats, 0, fn season, acc ->
-      acc + (Map.get(season, key) || 0)
-    end)
-  end
-
-  defp points_per_game(stats) do
-    total_games = career_total(stats, :games_played)
-    total_points = career_total(stats, :points)
-    if total_games > 0, do: Float.round(total_points / total_games, 2), else: 0.0
-  end
-
-  defp format_datetime(datetime) do
-    Calendar.strftime(datetime, "%B %d, %Y at %H:%M UTC")
   end
 end
