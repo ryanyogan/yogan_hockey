@@ -81,4 +81,29 @@ defmodule YoganHockey.NHL.APIClient do
   def get_season do
     http_adapter().get_json("#{@core_url}/seasons?limit=1")
   end
+
+  @doc """
+  Fetches details for a specific player.
+  """
+  @spec get_player(String.t() | integer()) :: {:ok, map()} | {:error, term()}
+  def get_player(player_id) do
+    http_adapter().get_json("https://site.api.espn.com/apis/common/v3/sports/hockey/nhl/athletes/#{player_id}")
+  end
+
+  @doc """
+  Fetches career statistics for a specific player (season-by-season).
+  """
+  @spec get_player_stats(String.t() | integer()) :: {:ok, map()} | {:error, term()}
+  def get_player_stats(player_id) do
+    http_adapter().get_json("https://site.web.api.espn.com/apis/common/v3/sports/hockey/nhl/athletes/#{player_id}/stats")
+  end
+
+  @doc """
+  Searches for players by name.
+  """
+  @spec search_players(String.t()) :: {:ok, map()} | {:error, term()}
+  def search_players(query) do
+    encoded_query = URI.encode(query)
+    http_adapter().get_json("https://site.api.espn.com/apis/common/v3/search?query=#{encoded_query}&type=player&sport=hockey&league=nhl&limit=10")
+  end
 end

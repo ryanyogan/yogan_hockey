@@ -24,11 +24,58 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
+// Hooks
+const Hooks = {}
+
+// FavoritePlayers hook - manages localStorage for favorite player IDs
+Hooks.FavoritePlayers = {
+  mounted() {
+    // Send favorites to LiveView on mount
+    const favorites = JSON.parse(localStorage.getItem("favorite_players") || "[]")
+    this.pushEvent("favorites_loaded", { player_ids: favorites })
+
+    // Listen for toggle events from LiveView
+    this.handleEvent("toggle_favorite", ({ player_id }) => {
+      let favorites = JSON.parse(localStorage.getItem("favorite_players") || "[]")
+
+      if (favorites.includes(player_id)) {
+        favorites = favorites.filter(id => id !== player_id)
+      } else {
+        favorites.push(player_id)
+      }
+
+      localStorage.setItem("favorite_players", JSON.stringify(favorites))
+      this.pushEvent("favorites_updated", { player_ids: favorites })
+    })
+
+    this.handleEvent("update_favorites", ({ player_ids }) => {
+      localStorage.setItem("favorite_players", JSON.stringify(player_ids))
+    })
+  }
+}
+
+// PlayerSearch hook - debounced search input
+Hooks.PlayerSearch = {
+  mounted() {
+    let timeout = null
+    const input = this.el.querySelector("input")
+
+    if (input) {
+      input.addEventListener("input", (e) => {
+        clearTimeout(timeout)
+        timeout = setTimeout(() => {
+          this.pushEvent("search", { query: e.target.value })
+        }, 300)
+      })
+    }
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {},
+  hooks: Hooks,
 })
 
 // Show progress bar on live navigation and form submits

@@ -6,6 +6,8 @@ defmodule YoganHockeyWeb.TeamLive do
 
   alias YoganHockey.NHL
 
+  import YoganHockeyWeb.HockeyComponents
+
   @impl true
   def mount(%{"id" => team_id}, _session, socket) do
     case NHL.get_team_details(team_id) do
@@ -21,7 +23,8 @@ defmodule YoganHockeyWeb.TeamLive do
          |> assign(:basic_team, basic_team)
          |> assign(:standings, standings)
          |> assign(:schedule, schedule)
-         |> assign(:tab, "schedule")}
+         |> assign(:tab, "schedule")
+         |> assign(:favorite_ids, [])}
 
       {:error, _reason} ->
         {:ok,
@@ -31,7 +34,8 @@ defmodule YoganHockeyWeb.TeamLive do
          |> assign(:basic_team, nil)
          |> assign(:standings, nil)
          |> assign(:schedule, nil)
-         |> assign(:tab, "schedule")}
+         |> assign(:tab, "schedule")
+         |> assign(:favorite_ids, [])}
     end
   end
 
@@ -48,6 +52,21 @@ defmodule YoganHockeyWeb.TeamLive do
   end
 
   @impl true
+  def handle_event("favorites_loaded", %{"player_ids" => player_ids}, socket) do
+    {:noreply, assign(socket, :favorite_ids, player_ids)}
+  end
+
+  @impl true
+  def handle_event("favorites_updated", %{"player_ids" => player_ids}, socket) do
+    {:noreply, assign(socket, :favorite_ids, player_ids)}
+  end
+
+  @impl true
+  def handle_event("toggle_favorite", %{"id" => player_id}, socket) do
+    {:noreply, push_event(socket, "toggle_favorite", %{player_id: player_id})}
+  end
+
+  @impl true
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
     {:noreply, assign(socket, :tab, tab)}
   end
@@ -55,7 +74,7 @@ defmodule YoganHockeyWeb.TeamLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div id="team-page" phx-hook="FavoritePlayers" class="space-y-6">
       <%= if @team do %>
         <%!-- Team Header --%>
         <div class="data-card p-4">
@@ -192,20 +211,24 @@ defmodule YoganHockeyWeb.TeamLive do
                     <th class="stat w-12">#</th>
                     <th>Player</th>
                     <th class="stat">Pos</th>
+                    <th class="stat w-12"></th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr :for={player <- sort_roster(@team.roster)}>
                     <td class="stat font-bold text-primary">{player.jersey || "-"}</td>
                     <td>
-                      <div class="flex items-center gap-2">
+                      <.link navigate={~p"/players/#{player.id}"} class="flex items-center gap-2 hover:text-primary transition-colors">
                         <div class="w-6 h-6 bg-base-300 overflow-hidden shrink-0">
                           <img :if={player.headshot} src={player.headshot} class="w-full h-full object-cover" />
                         </div>
                         <span class="text-sm font-medium">{player.display_name || player.name}</span>
-                      </div>
+                      </.link>
                     </td>
                     <td class="stat text-base-content/60">{player.position || "-"}</td>
+                    <td class="stat">
+                      <.favorite_button player_id={to_string(player.id)} favorited={to_string(player.id) in @favorite_ids} />
+                    </td>
                   </tr>
                 </tbody>
               </table>

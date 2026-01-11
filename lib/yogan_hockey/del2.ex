@@ -85,6 +85,45 @@ defmodule YoganHockey.DEL2 do
     Cache.get(:yogan_stats, :last_updated)
   end
 
+  # --- Team Schedule ---
+
+  @doc """
+  Returns the team schedule from cache.
+  """
+  @spec get_team_schedule() :: map()
+  def get_team_schedule do
+    case Cache.get(:yogan_stats, :team_schedule) do
+      nil -> default_team_schedule()
+      schedule -> schedule
+    end
+  end
+
+  @doc """
+  Fetches and caches the team schedule.
+  """
+  @spec refresh_team_schedule() :: {:ok, map()} | {:error, term()}
+  def refresh_team_schedule do
+    case EliteProspectsScraper.fetch_team_schedule() do
+      {:ok, schedule} ->
+        Cache.put(:yogan_stats, :team_schedule, schedule)
+        Cache.put(:yogan_stats, :schedule_updated, DateTime.utc_now())
+        {:ok, schedule}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp default_team_schedule do
+    %{
+      team: "Dresdner Eislöwen",
+      league: "DEL",
+      past_games: [],
+      upcoming_games: [],
+      scraped_at: nil
+    }
+  end
+
   # --- Team Info ---
 
   @doc """

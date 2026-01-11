@@ -24,7 +24,46 @@ defmodule YoganHockeyWeb.DashboardLive do
      |> assign(:standings, NHL.list_standings())
      |> assign(:yogan, DEL2.get_yogan_player())
      |> assign(:yogan_current, DEL2.get_yogan_current_season())
-     |> assign(:teams, NHL.list_teams())}
+     |> assign(:teams, NHL.list_teams())
+     |> assign(:favorite_ids, [])
+     |> assign(:favorite_players, nil)}
+  end
+
+  # Handle favorites loaded from localStorage
+  @impl true
+  def handle_event("favorites_loaded", %{"player_ids" => player_ids}, socket) do
+    # Show max 2 favorites on dashboard
+    display_ids = Enum.take(player_ids, 2)
+
+    socket =
+      socket
+      |> assign(:favorite_ids, player_ids)
+      |> assign_async(:favorite_players, fn ->
+        players = NHL.get_players(display_ids)
+        {:ok, %{favorite_players: players}}
+      end)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("favorites_updated", %{"player_ids" => player_ids}, socket) do
+    display_ids = Enum.take(player_ids, 2)
+
+    socket =
+      socket
+      |> assign(:favorite_ids, player_ids)
+      |> assign_async(:favorite_players, fn ->
+        players = NHL.get_players(display_ids)
+        {:ok, %{favorite_players: players}}
+      end)
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("toggle_favorite", %{"id" => player_id}, socket) do
+    {:noreply, push_event(socket, "toggle_favorite", %{player_id: player_id})}
   end
 
   @impl true
@@ -46,7 +85,7 @@ defmodule YoganHockeyWeb.DashboardLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div id="dashboard" phx-hook="FavoritePlayers" class="space-y-6">
       <%!-- Scoreboard Ticker --%>
       <section>
         <.scoreboard_ticker games={@live_games} />
@@ -60,6 +99,32 @@ defmodule YoganHockeyWeb.DashboardLive do
           <section>
             <.section_header title="Featured Player" link_text="Full Stats" link_to={~p"/yogan"} />
             <.featured_player player={@yogan} stats={@yogan_current} />
+          </section>
+
+          <%!-- Favorite Players --%>
+          <section>
+            <.section_header title="Your Favorites" link_text="All Players" link_to={~p"/players"} />
+            <%= case @favorite_players do %>
+              <% %Phoenix.LiveView.AsyncResult{loading: true} -> %>
+                <%!-- Loading skeleton --%>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <.player_card_skeleton :for={_ <- 1..min(length(@favorite_ids), 2)} />
+                </div>
+
+              <% %Phoenix.LiveView.AsyncResult{ok?: true, result: players} when players != [] -> %>
+                <%!-- Loaded favorites --%>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <.player_card
+                    :for={player <- players}
+                    player={player}
+                    favorited={player.id in @favorite_ids}
+                  />
+                </div>
+
+              <% _ -> %>
+                <%!-- Empty state --%>
+                <.empty_favorites />
+            <% end %>
           </section>
 
           <%!-- Today's Games --%>

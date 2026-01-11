@@ -471,6 +471,192 @@ defmodule YoganHockeyWeb.HockeyComponents do
   end
 
   # ============================================
+  # PLAYER CARD COMPONENTS
+  # ============================================
+
+  @doc """
+  Renders a compact player card with favorite button.
+  """
+  attr :player, :map, required: true
+  attr :favorited, :boolean, default: false
+  attr :show_favorite, :boolean, default: true
+  attr :class, :string, default: ""
+
+  def player_card(assigns) do
+    ~H"""
+    <div class={["player-card", @class]}>
+      <.link navigate={~p"/players/#{@player.id}"} class="player-card-content">
+        <div class="player-headshot">
+          <img :if={@player.headshot} src={@player.headshot} alt={@player.name} />
+          <div :if={!@player.headshot} class="player-headshot-placeholder">
+            <span class="text-2xl">🏒</span>
+          </div>
+        </div>
+        <div class="player-info">
+          <div class="player-name">{@player.name}</div>
+          <div class="player-team">
+            <span :if={@player.team}>{get_team_name(@player.team)}</span>
+            <span :if={@player.position} class="player-position">· {@player.position}</span>
+          </div>
+          <div :if={@player.current_season_stats} class="player-stats">
+            <span>{@player.current_season_stats.games_played || 0} GP</span>
+            <span>{@player.current_season_stats.goals || 0} G</span>
+            <span>{@player.current_season_stats.assists || 0} A</span>
+            <span class="font-bold">{@player.current_season_stats.points || 0} PTS</span>
+          </div>
+        </div>
+      </.link>
+      <.favorite_button :if={@show_favorite} player_id={@player.id} favorited={@favorited} />
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a skeleton loading card matching player_card dimensions.
+  """
+  attr :class, :string, default: ""
+
+  def player_card_skeleton(assigns) do
+    ~H"""
+    <div class={["player-card skeleton", @class]}>
+      <div class="player-card-content">
+        <div class="player-headshot skeleton-avatar"></div>
+        <div class="player-info">
+          <div class="skeleton-line w-3/4 h-4 mb-2"></div>
+          <div class="skeleton-line w-1/2 h-3 mb-2"></div>
+          <div class="skeleton-line w-full h-3"></div>
+        </div>
+      </div>
+      <div class="skeleton-btn"></div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a favorite (heart) toggle button.
+  """
+  attr :player_id, :string, required: true
+  attr :favorited, :boolean, default: false
+  attr :class, :string, default: ""
+
+  def favorite_button(assigns) do
+    ~H"""
+    <button
+      phx-click="toggle_favorite"
+      phx-value-id={@player_id}
+      class={["favorite-btn", @favorited && "active", @class]}
+      title={if @favorited, do: "Remove from favorites", else: "Add to favorites"}
+    >
+      <svg
+        :if={!@favorited}
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+        class="w-5 h-5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+        />
+      </svg>
+      <svg
+        :if={@favorited}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        class="w-5 h-5"
+      >
+        <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+      </svg>
+    </button>
+    """
+  end
+
+  @doc """
+  Renders a search input with dropdown results for player search.
+  """
+  attr :results, :list, default: []
+  attr :query, :string, default: ""
+  attr :loading, :boolean, default: false
+  attr :favorite_ids, :list, default: []
+  attr :class, :string, default: ""
+
+  def player_search(assigns) do
+    ~H"""
+    <div id="player-search" phx-hook="PlayerSearch" class={["player-search", @class]}>
+      <div class="search-input-wrapper">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="search-icon"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+          />
+        </svg>
+        <input
+          type="text"
+          placeholder="Search NHL players..."
+          class="search-input"
+          value={@query}
+          phx-debounce="300"
+        />
+        <div :if={@loading} class="search-spinner"></div>
+      </div>
+      <div :if={@results != [] and @query != ""} class="search-dropdown">
+        <.link
+          :for={player <- @results}
+          navigate={~p"/players/#{player.id}"}
+          class="search-result"
+        >
+          <div class="search-result-avatar">
+            <img :if={player.headshot} src={player.headshot} alt={player.name} />
+            <span :if={!player.headshot}>🏒</span>
+          </div>
+          <div class="search-result-info">
+            <div class="search-result-name">{player.name}</div>
+            <div class="search-result-team">
+              {get_team_name(player.team)} · {player.position}
+            </div>
+          </div>
+          <.favorite_button
+            player_id={player.id}
+            favorited={player.id in @favorite_ids}
+          />
+        </.link>
+        <div :if={@results == [] and @query != ""} class="search-empty">
+          No players found for "{@query}"
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders an empty favorites state with a call-to-action.
+  """
+  attr :class, :string, default: ""
+
+  def empty_favorites(assigns) do
+    ~H"""
+    <div class={["empty-favorites", @class]}>
+      <p class="text-sm text-base-content/50">No favorite players yet</p>
+      <.link navigate={~p"/players"} class="text-primary text-sm hover:underline">
+        Browse players to add favorites
+      </.link>
+    </div>
+    """
+  end
+
+  # ============================================
   # HELPER FUNCTIONS
   # ============================================
 
@@ -498,4 +684,9 @@ defmodule YoganHockeyWeb.HockeyComponents do
     end
   end
   defp get_stat(_, _), do: "-"
+
+  defp get_team_name(%{name: name}) when is_binary(name) and name != "", do: name
+  defp get_team_name(%{abbreviation: abbr}) when is_binary(abbr) and abbr != "", do: abbr
+  defp get_team_name(name) when is_binary(name), do: name
+  defp get_team_name(_), do: "NHL"
 end

@@ -16,6 +16,7 @@ defmodule YoganHockeyWeb.YoganLive do
 
     stats = DEL2.get_yogan_stats()
     team = DEL2.get_team()
+    schedule = DEL2.get_team_schedule()
 
     {:ok,
      socket
@@ -24,6 +25,8 @@ defmodule YoganHockeyWeb.YoganLive do
      |> assign(:current_season, stats.current_season)
      |> assign(:career_stats, stats.career_stats)
      |> assign(:team, team)
+     |> assign(:schedule, schedule)
+     |> assign(:tab, "stats")
      |> assign(:last_updated, DEL2.yogan_stats_updated_at())}
   end
 
@@ -35,6 +38,16 @@ defmodule YoganHockeyWeb.YoganLive do
      |> assign(:current_season, stats.current_season)
      |> assign(:career_stats, stats.career_stats)
      |> assign(:last_updated, DateTime.utc_now())}
+  end
+
+  @impl true
+  def handle_info({:team_schedule_updated, schedule}, socket) do
+    {:noreply, assign(socket, :schedule, schedule)}
+  end
+
+  @impl true
+  def handle_event("switch_tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, :tab, tab)}
   end
 
   @impl true
@@ -87,6 +100,27 @@ defmodule YoganHockeyWeb.YoganLive do
         </div>
       </div>
 
+      <%!-- Tab Buttons --%>
+      <div class="flex gap-2">
+        <button
+          phx-click="switch_tab"
+          phx-value-tab="stats"
+          class={"px-4 py-2 text-sm font-medium transition-colors " <>
+            if(@tab == "stats", do: "bg-primary text-primary-content", else: "bg-base-200 text-base-content/70 hover:bg-base-300")}
+        >
+          Stats
+        </button>
+        <button
+          phx-click="switch_tab"
+          phx-value-tab="schedule"
+          class={"px-4 py-2 text-sm font-medium transition-colors " <>
+            if(@tab == "schedule", do: "bg-primary text-primary-content", else: "bg-base-200 text-base-content/70 hover:bg-base-300")}
+        >
+          Schedule
+        </button>
+      </div>
+
+      <%= if @tab == "stats" do %>
       <%!-- Current Season Stats --%>
       <section>
         <.section_header title="Current Season" />
@@ -173,6 +207,83 @@ defmodule YoganHockeyWeb.YoganLive do
           </div>
         </div>
       </section>
+      <% else %>
+      <%!-- Schedule Tab --%>
+      <section>
+        <.section_header title="Team Schedule" />
+        <div class="text-xs text-base-content/50 -mt-2 mb-3">
+          {@schedule.team} · {@schedule.league} · 2025-26 Season
+        </div>
+
+        <%!-- Upcoming Games --%>
+        <div :if={@schedule.upcoming_games != []} class="mb-6">
+          <div class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-2">
+            Upcoming ({length(@schedule.upcoming_games)} games)
+          </div>
+          <div class="space-y-2">
+            <div
+              :for={game <- @schedule.upcoming_games}
+              class="data-card p-3 flex items-center justify-between"
+            >
+              <div class="flex items-center gap-3">
+                <div class="text-xs text-base-content/50 w-20">{game.date}</div>
+                <div class="text-sm font-medium">
+                  <span :if={game.is_home} class="text-base-content/50 text-xs mr-1">vs</span>
+                  <span :if={!game.is_home} class="text-base-content/50 text-xs mr-1">@</span>
+                  {game.opponent}
+                </div>
+              </div>
+              <span class="text-xs bg-base-200 px-2 py-0.5">
+                {if game.is_home, do: "HOME", else: "AWAY"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Past Games --%>
+        <div :if={@schedule.past_games != []}>
+          <div class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-2">
+            Results ({length(@schedule.past_games)} games)
+          </div>
+          <div class="space-y-2 max-h-[600px] overflow-y-auto">
+            <div
+              :for={game <- @schedule.past_games}
+              class="data-card p-3 flex items-center justify-between"
+            >
+              <div class="flex items-center gap-3">
+                <div class="text-xs text-base-content/50 w-20">{game.date}</div>
+                <div class="text-sm font-medium">
+                  <span :if={game.is_home} class="text-base-content/50 text-xs mr-1">vs</span>
+                  <span :if={!game.is_home} class="text-base-content/50 text-xs mr-1">@</span>
+                  {game.opponent}
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-sm">
+                  {game.our_score} - {game.opponent_score}
+                </span>
+                <span class={"text-xs font-bold px-2 py-0.5 " <>
+                  case game.result do
+                    :win -> "bg-success/20 text-success"
+                    :loss -> "bg-error/20 text-error"
+                    _ -> "bg-base-200 text-base-content/50"
+                  end}>
+                  {case game.result do
+                    :win -> "W"
+                    :loss -> "L"
+                    _ -> "T"
+                  end}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div :if={@schedule.past_games == [] and @schedule.upcoming_games == []} class="data-card p-6 text-center text-base-content/50">
+          No schedule data available yet.
+        </div>
+      </section>
+      <% end %>
 
       <%!-- Last Updated --%>
       <div :if={@last_updated} class="text-center text-xs text-base-content/40">

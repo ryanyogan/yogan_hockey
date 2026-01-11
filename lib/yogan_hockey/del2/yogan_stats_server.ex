@@ -64,15 +64,37 @@ defmodule YoganHockey.DEL2.YoganStatsServer do
   # --- Private ---
 
   defp do_poll(state) do
-    case DEL2.refresh_yogan_stats() do
+    # Fetch player stats
+    stats_result = DEL2.refresh_yogan_stats()
+
+    # Also fetch team schedule
+    schedule_result = DEL2.refresh_team_schedule()
+
+    case stats_result do
       {:ok, stats} ->
         Logger.debug("Fetched Yogan stats: #{stats.player.name}")
 
+        # Broadcast stats update
         Phoenix.PubSub.broadcast(
           YoganHockey.PubSub,
           "yogan:stats",
           {:yogan_stats_updated, stats}
         )
+
+        # Broadcast schedule update if successful
+        case schedule_result do
+          {:ok, schedule} ->
+            Logger.debug("Fetched team schedule: #{length(schedule.past_games)} past, #{length(schedule.upcoming_games)} upcoming")
+
+            Phoenix.PubSub.broadcast(
+              YoganHockey.PubSub,
+              "yogan:stats",
+              {:team_schedule_updated, schedule}
+            )
+
+          {:error, reason} ->
+            Logger.warning("Failed to fetch team schedule: #{inspect(reason)}")
+        end
 
         %{state | last_poll: DateTime.utc_now(), consecutive_failures: 0}
 

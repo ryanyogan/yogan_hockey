@@ -141,6 +141,75 @@ defmodule YoganHockey.NHL do
     end
   end
 
+  # --- Players ---
+
+  @doc """
+  Gets a player by ID, using cache if available.
+  Returns {:ok, player} or {:error, reason}.
+  """
+  @spec get_player(String.t() | integer()) :: {:ok, map()} | {:error, term()}
+  def get_player(player_id) do
+    player_id = to_string(player_id)
+    cache_key = {:player, player_id}
+
+    cached = Cache.get(:player_cache, cache_key)
+
+    # Only use cache if it's a full player record (has career_seasons)
+    if cached && is_full_player_record?(cached) do
+      {:ok, cached}
+    else
+      fetch_and_cache_player(player_id, cache_key)
+    end
+  end
+
+  defp is_full_player_record?(player) do
+    # Full player records have career_seasons from the stats API
+    Map.has_key?(player, :career_seasons) && Map.has_key?(player, :birth_date)
+  end
+
+  defp fetch_and_cache_player(player_id, cache_key) do
+    with {:ok, data} <- APIClient.get_player(player_id),
+         {:ok, stats_data} <- APIClient.get_player_stats(player_id) do
+      player = parse_player(data)
+      career_seasons = parse_career_seasons(stats_data)
+      player = Map.put(player, :career_seasons, career_seasons)
+      Cache.put(:player_cache, cache_key, player)
+      {:ok, player}
+    else
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc """
+  Gets multiple players by their IDs.
+  Returns a list of players (skips any that fail to load).
+  """
+  @spec get_players([String.t() | integer()]) :: [map()]
+  def get_players(player_ids) when is_list(player_ids) do
+    player_ids
+    |> Enum.map(&get_player/1)
+    |> Enum.filter(&match?({:ok, _}, &1))
+    |> Enum.map(fn {:ok, player} -> player end)
+  end
+
+  @doc """
+  Searches for players by name.
+  Returns search results (does not cache as full player data).
+  """
+  @spec search_players(String.t()) :: {:ok, [map()]} | {:error, term()}
+  def search_players(query) when is_binary(query) and byte_size(query) >= 2 do
+    case APIClient.search_players(query) do
+      {:ok, data} ->
+        players = parse_search_results(data)
+        {:ok, players}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def search_players(_query), do: {:ok, []}
+
   # --- Standings ---
 
   @doc """
@@ -521,4 +590,182 @@ defmodule YoganHockey.NHL do
     end
   end
   defp parse_date(_), do: nil
+
+  # --- Player Parsing ---
+
+  defp parse_player(%{"athlete" => athlete}) do
+    team = athlete["team"] || %{}
+    position = athlete["position"] || %{}
+    current_stats = parse_stats_summary(athlete["statsSummary"])
+
+    %{
+      id: to_string(athlete["id"]),
+      name: athlete["displayName"] || athlete["fullName"],
+      first_name: athlete["firstName"],
+      last_name: athlete["lastName"],
+      jersey: athlete["jersey"],
+      position: position["abbreviation"] || position["name"],
+      position_name: position["name"],
+      team: %{
+        id: to_string(team["id"] || ""),
+        name: team["displayName"] || team["name"],
+        abbreviation: team["abbreviation"],
+        logo: get_team_logo(team)
+      },
+      headshot: get_headshot(athlete),
+      birth_date: athlete["dateOfBirth"],
+      birth_place: parse_birth_place(athlete["birthPlace"]),
+      height: athlete["displayHeight"],
+      weight: athlete["displayWeight"],
+      shoots: get_in(athlete, ["hand", "displayValue"]),
+      status: get_in(athlete, ["status", "type"]),
+      current_season_stats: current_stats
+    }
+  end
+
+  defp parse_player(_), do: nil
+
+  # Parse statsSummary from main player API
+  defp parse_stats_summary(%{"statistics" => stats}) when is_list(stats) do
+    stats_map =
+      stats
+      |> Enum.map(fn stat -> {stat["name"], stat["value"]} end)
+      |> Enum.into(%{})
+
+    %{
+      games_played: parse_stat_value(stats_map["gamesPlayed"]),
+      goals: parse_stat_value(stats_map["goals"]),
+      assists: parse_stat_value(stats_map["assists"]),
+      points: parse_stat_value(stats_map["points"]),
+      plus_minus: parse_stat_value(stats_map["plusMinus"]),
+      penalty_minutes: parse_stat_value(stats_map["penaltyMinutes"]),
+      shots: parse_stat_value(stats_map["shots"]),
+      power_play_goals: parse_stat_value(stats_map["powerPlayGoals"]),
+      power_play_assists: parse_stat_value(stats_map["powerPlayAssists"]),
+      game_winning_goals: parse_stat_value(stats_map["gameWinningGoals"])
+    }
+  end
+  defp parse_stats_summary(_), do: nil
+
+  defp get_team_logo(%{"logos" => [%{"href" => url} | _]}), do: url
+  defp get_team_logo(%{"logo" => url}) when is_binary(url), do: url
+  defp get_team_logo(_), do: nil
+
+  defp get_headshot(%{"headshot" => %{"href" => url}}), do: url
+  defp get_headshot(%{"headshot" => url}) when is_binary(url), do: url
+  defp get_headshot(_), do: nil
+
+  defp parse_birth_place(%{"city" => city, "state" => state, "country" => country}) do
+    [city, state, country]
+    |> Enum.filter(&(&1 && &1 != ""))
+    |> Enum.join(", ")
+  end
+  defp parse_birth_place(%{"city" => city, "country" => country}) do
+    [city, country]
+    |> Enum.filter(&(&1 && &1 != ""))
+    |> Enum.join(", ")
+  end
+  defp parse_birth_place(_), do: nil
+
+  defp parse_search_results(%{"items" => items}) when is_list(items) do
+    items
+    |> Enum.filter(fn item -> item["type"] == "player" end)
+    |> Enum.map(&parse_search_item/1)
+  end
+  defp parse_search_results(_), do: []
+
+  defp parse_search_item(item) do
+    %{
+      id: to_string(item["id"]),
+      name: item["displayName"] || item["name"],
+      position: item["position"],
+      team: %{
+        name: item["team"] || item["teamName"],
+        abbreviation: item["teamAbbreviation"]
+      },
+      headshot: extract_headshot(item["headshot"])
+    }
+  end
+
+  defp extract_headshot(%{"href" => url}) when is_binary(url), do: url
+  defp extract_headshot(url) when is_binary(url), do: url
+  defp extract_headshot(_), do: nil
+
+  # --- Career Stats Parsing ---
+
+  # ESPN stats API returns data in categories[].statistics[] format
+  # Each category has "names" (stat keys) and "statistics" (season data with "stats" array)
+  defp parse_career_seasons(%{"categories" => categories}) when is_list(categories) do
+    # Find regular season category (usually first one or named "Regular Season")
+    category = List.first(categories)
+
+    case category do
+      %{"names" => names, "statistics" => statistics} when is_list(names) and is_list(statistics) ->
+        statistics
+        |> Enum.map(fn season_data -> parse_season_from_category(season_data, names) end)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.sort_by(& &1.year, :desc)
+
+      _ ->
+        []
+    end
+  end
+  defp parse_career_seasons(_), do: []
+
+  defp parse_season_from_category(%{"season" => season, "stats" => stats} = data, names)
+       when is_list(stats) and is_list(names) do
+    # Build a map from stat names to values
+    stats_map =
+      names
+      |> Enum.zip(stats)
+      |> Enum.into(%{})
+
+    season_display = get_in(season, ["displayName"]) || ""
+    season_year = get_in(season, ["year"])
+
+    # Get team name from teamSlug or teamId
+    team_name = get_team_name_from_stats(data)
+
+    %{
+      season: season_display,
+      year: season_year,
+      team: team_name,
+      league: "NHL",
+      games_played: parse_stat_value(stats_map["games"]),
+      goals: parse_stat_value(stats_map["goals"]),
+      assists: parse_stat_value(stats_map["assists"]),
+      points: parse_stat_value(stats_map["points"]),
+      plus_minus: parse_stat_value(stats_map["plusMinus"]),
+      penalty_minutes: parse_stat_value(stats_map["penaltyMinutes"]),
+      power_play_goals: parse_stat_value(stats_map["powerPlayGoals"]),
+      power_play_assists: parse_stat_value(stats_map["powerPlayAssists"]),
+      shots: parse_stat_value(stats_map["shootoutGoals"]),
+      shooting_pct: stats_map["shootingPct"],
+      game_winning_goals: parse_stat_value(stats_map["gameWinningGoals"])
+    }
+  end
+  defp parse_season_from_category(_, _), do: nil
+
+  defp get_team_name_from_stats(%{"teamSlug" => slug}) when is_binary(slug) do
+    slug
+    |> String.split("-")
+    |> Enum.map(&String.capitalize/1)
+    |> Enum.join(" ")
+  end
+  defp get_team_name_from_stats(%{"teamName" => name}) when is_binary(name), do: name
+  defp get_team_name_from_stats(_), do: "NHL"
+
+  defp parse_stat_value(value) when is_float(value), do: round(value)
+  defp parse_stat_value(value) when is_integer(value), do: value
+  defp parse_stat_value(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {i, _} -> i
+      :error ->
+        case Float.parse(value) do
+          {f, _} -> round(f)
+          :error -> nil
+        end
+    end
+  end
+  defp parse_stat_value(_), do: nil
 end

@@ -11,6 +11,7 @@ defmodule YoganHockey.Cache do
     :nhl_teams,
     :nhl_standings,
     :nhl_team_stats,
+    :player_cache,
     :yogan_stats,
     :del2_team
   ]
@@ -33,9 +34,13 @@ defmodule YoganHockey.Cache do
   """
   @spec get(atom(), term()) :: term() | nil
   def get(table, key) do
-    case :ets.lookup(table, key) do
-      [{^key, value}] -> value
-      [] -> nil
+    case :ets.whereis(table) do
+      :undefined -> nil
+      _ ->
+        case :ets.lookup(table, key) do
+          [{^key, value}] -> value
+          [] -> nil
+        end
     end
   end
 
@@ -60,8 +65,19 @@ defmodule YoganHockey.Cache do
   """
   @spec put(atom(), term(), term()) :: :ok
   def put(table, key, value) do
+    # Ensure table exists (handles hot code reload during development)
+    ensure_table(table)
     :ets.insert(table, {key, value})
     :ok
+  end
+
+  defp ensure_table(table) do
+    case :ets.whereis(table) do
+      :undefined ->
+        :ets.new(table, [:set, :public, :named_table, read_concurrency: true])
+      _ ->
+        :ok
+    end
   end
 
   @doc """

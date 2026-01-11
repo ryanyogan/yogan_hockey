@@ -22,6 +22,8 @@ defmodule YoganHockeyWeb.Router do
     live "/nhl", NHLLive, :index
     live "/nhl/live", LiveScoresLive, :index
     live "/nhl/teams/:id", TeamLive, :show
+    live "/players", PlayersLive, :index
+    live "/players/:id", PlayerLive, :show
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

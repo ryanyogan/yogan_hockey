@@ -414,6 +414,141 @@
   .conf-tab.active {
     @apply border-b-2 border-primary text-primary;
   }
+
+  /* Player Cards */
+  .player-card {
+    @apply bg-base-200 border border-base-300 flex items-stretch;
+    @apply hover:border-primary/50 transition-all;
+  }
+
+  .player-card-content {
+    @apply flex items-center gap-3 p-3 flex-1 min-w-0;
+  }
+
+  .player-headshot {
+    @apply w-12 h-12 sm:w-14 sm:h-14 bg-base-300 flex-shrink-0 overflow-hidden;
+  }
+
+  .player-headshot img {
+    @apply w-full h-full object-cover;
+  }
+
+  .player-headshot-placeholder {
+    @apply w-full h-full flex items-center justify-center bg-base-300;
+  }
+
+  .player-info {
+    @apply flex-1 min-w-0;
+  }
+
+  .player-name {
+    @apply font-medium text-sm truncate;
+  }
+
+  .player-team {
+    @apply text-xs text-base-content/60 truncate;
+  }
+
+  .player-position {
+    @apply text-base-content/40;
+  }
+
+  .player-stats {
+    @apply flex gap-2 mt-1 text-xs font-mono text-base-content/60;
+  }
+
+  .player-stats span:last-child {
+    @apply text-primary;
+  }
+
+  /* Favorite Button */
+  .favorite-btn {
+    @apply p-3 flex items-center justify-center text-base-content/40;
+    @apply hover:text-error hover:bg-base-300/50 transition-colors;
+    @apply border-l border-base-300;
+  }
+
+  .favorite-btn.active {
+    @apply text-error;
+  }
+
+  /* Player Card Skeleton */
+  .player-card.skeleton {
+    @apply animate-pulse;
+  }
+
+  .player-card.skeleton .skeleton-avatar {
+    @apply bg-base-300;
+  }
+
+  .player-card.skeleton .skeleton-line {
+    @apply bg-base-300 rounded;
+  }
+
+  .player-card.skeleton .skeleton-btn {
+    @apply w-10 bg-base-300;
+  }
+
+  /* Player Search */
+  .player-search {
+    @apply relative;
+  }
+
+  .search-input-wrapper {
+    @apply relative flex items-center;
+  }
+
+  .search-icon {
+    @apply absolute left-3 w-4 h-4 text-base-content/40;
+  }
+
+  .search-input {
+    @apply w-full bg-base-200 border border-base-300 pl-10 pr-10 py-2.5;
+    @apply text-sm placeholder:text-base-content/40;
+    @apply focus:border-primary focus:outline-none transition-colors;
+  }
+
+  .search-spinner {
+    @apply absolute right-3 w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin;
+  }
+
+  .search-dropdown {
+    @apply absolute top-full left-0 right-0 mt-1 bg-base-200 border border-base-300;
+    @apply max-h-80 overflow-y-auto z-50 shadow-lg;
+  }
+
+  .search-result {
+    @apply flex items-center gap-3 p-3 hover:bg-base-300/50 transition-colors;
+  }
+
+  .search-result-avatar {
+    @apply w-10 h-10 bg-base-300 flex items-center justify-center flex-shrink-0 overflow-hidden;
+  }
+
+  .search-result-avatar img {
+    @apply w-full h-full object-cover;
+  }
+
+  .search-result-info {
+    @apply flex-1 min-w-0;
+  }
+
+  .search-result-name {
+    @apply text-sm font-medium truncate;
+  }
+
+  .search-result-team {
+    @apply text-xs text-base-content/60 truncate;
+  }
+
+  .search-empty {
+    @apply p-4 text-center text-sm text-base-content/50;
+  }
+
+  /* Empty Favorites */
+  .empty-favorites {
+    @apply bg-base-200 border border-base-300 border-dashed p-6 text-center;
+  }
 }
 
 /* Scrollbar utilities */
