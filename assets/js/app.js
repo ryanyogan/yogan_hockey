@@ -71,6 +71,26 @@ Hooks.PlayerSearch = {
   }
 }
 
+// MobileMenu hook - closes menu on LiveView navigation
+Hooks.MobileMenu = {
+  mounted() {
+    this.checkbox = document.getElementById("mobile-menu")
+
+    // Close menu when LiveView navigation starts
+    this.navigationHandler = () => {
+      if (this.checkbox) {
+        this.checkbox.checked = false
+      }
+    }
+
+    window.addEventListener("phx:page-loading-start", this.navigationHandler)
+  },
+
+  destroyed() {
+    window.removeEventListener("phx:page-loading-start", this.navigationHandler)
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,

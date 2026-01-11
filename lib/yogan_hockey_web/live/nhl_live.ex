@@ -69,14 +69,14 @@ defmodule YoganHockeyWeb.NHLLive do
           <button
             phx-click="switch_tab"
             phx-value-tab="standings"
-            class={["text-xs px-3 py-1", @tab == "standings" && "bg-primary text-primary-content", @tab != "standings" && "bg-base-300"]}
+            class={["text-xs px-3 py-1 cursor-pointer", @tab == "standings" && "bg-primary text-primary-content", @tab != "standings" && "bg-base-300"]}
           >
             Standings
           </button>
           <button
             phx-click="switch_tab"
             phx-value-tab="teams"
-            class={["text-xs px-3 py-1", @tab == "teams" && "bg-primary text-primary-content", @tab != "teams" && "bg-base-300"]}
+            class={["text-xs px-3 py-1 cursor-pointer", @tab == "teams" && "bg-primary text-primary-content", @tab != "teams" && "bg-base-300"]}
           >
             Teams
           </button>

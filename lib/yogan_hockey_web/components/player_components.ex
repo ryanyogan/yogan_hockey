@@ -197,7 +197,7 @@ defmodule YoganHockeyWeb.PlayerComponents do
     <button
       phx-click="toggle_favorite"
       phx-value-id={@player_id}
-      class={["favorite-btn", @favorited && "active", @class]}
+      class={["favorite-btn cursor-pointer", @favorited && "active", @class]}
       title={if @favorited, do: "Remove from favorites", else: "Add to favorites"}
     >
       <svg
@@ -265,19 +265,21 @@ defmodule YoganHockeyWeb.PlayerComponents do
         <div :if={@loading} class="search-spinner"></div>
       </div>
       <div :if={@results != [] and @query != ""} class="search-dropdown">
-        <.link :for={player <- @results} navigate={~p"/players/#{player.id}"} class="search-result">
-          <div class="search-result-avatar">
-            <img :if={player.headshot} src={player.headshot} alt={player.name} />
-            <span :if={!player.headshot}>🏒</span>
-          </div>
-          <div class="search-result-info">
-            <div class="search-result-name">{player.name}</div>
-            <div class="search-result-team">
-              {get_team_name(player.team)} · {player.position}
+        <div :for={player <- @results} class="search-result">
+          <.link navigate={~p"/players/#{player.id}"} class="search-result-link">
+            <div class="search-result-avatar">
+              <img :if={player.headshot} src={player.headshot} alt={player.name} />
+              <span :if={!player.headshot}>🏒</span>
             </div>
-          </div>
+            <div class="search-result-info">
+              <div class="search-result-name">{player.name}</div>
+              <div class="search-result-team">
+                {get_team_name(player.team)} · {player.position}
+              </div>
+            </div>
+          </.link>
           <.favorite_button player_id={player.id} favorited={player.id in @favorite_ids} />
-        </.link>
+        </div>
         <div :if={@results == [] and @query != ""} class="search-empty">
           No players found for "{@query}"
         </div>

@@ -17,13 +17,15 @@ defmodule YoganHockeyWeb.Router do
   scope "/", YoganHockeyWeb do
     pipe_through :browser
 
-    live "/", DashboardLive, :index
-    live "/yogan", YoganLive, :index
-    live "/nhl", NHLLive, :index
-    live "/nhl/live", LiveScoresLive, :index
-    live "/nhl/teams/:id", TeamLive, :show
-    live "/players", PlayersLive, :index
-    live "/players/:id", PlayerLive, :show
+    live_session :default, layout: {YoganHockeyWeb.Layouts, :app} do
+      live "/", DashboardLive, :index
+      live "/yogan", YoganLive, :index
+      live "/nhl", NHLLive, :index
+      live "/nhl/live", LiveScoresLive, :index
+      live "/nhl/teams/:id", TeamLive, :show
+      live "/players", PlayersLive, :index
+      live "/players/:id", PlayerLive, :show
+    end
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

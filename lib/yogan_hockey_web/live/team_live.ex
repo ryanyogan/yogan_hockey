@@ -148,21 +148,21 @@ defmodule YoganHockeyWeb.TeamLive do
           <button
             phx-click="switch_tab"
             phx-value-tab="schedule"
-            class={["text-xs px-4 py-2", @tab == "schedule" && "bg-primary text-primary-content", @tab != "schedule" && "bg-base-300"]}
+            class={["text-xs px-4 py-2 cursor-pointer", @tab == "schedule" && "bg-primary text-primary-content", @tab != "schedule" && "bg-base-300"]}
           >
             Schedule
           </button>
           <button
             phx-click="switch_tab"
             phx-value-tab="roster"
-            class={["text-xs px-4 py-2", @tab == "roster" && "bg-primary text-primary-content", @tab != "roster" && "bg-base-300"]}
+            class={["text-xs px-4 py-2 cursor-pointer", @tab == "roster" && "bg-primary text-primary-content", @tab != "roster" && "bg-base-300"]}
           >
             Roster
           </button>
           <button
             phx-click="switch_tab"
             phx-value-tab="stats"
-            class={["text-xs px-4 py-2", @tab == "stats" && "bg-primary text-primary-content", @tab != "stats" && "bg-base-300"]}
+            class={["text-xs px-4 py-2 cursor-pointer", @tab == "stats" && "bg-primary text-primary-content", @tab != "stats" && "bg-base-300"]}
           >
             Stats
           </button>
@@ -255,7 +255,7 @@ defmodule YoganHockeyWeb.TeamLive do
                     <button
                       phx-click="toggle_favorite"
                       phx-value-id={to_string(player.id)}
-                      class={["text-base-content/40 hover:text-error transition-colors", to_string(player.id) in @favorite_ids && "text-error"]}
+                      class={["cursor-pointer text-base-content/40 hover:text-error transition-colors", to_string(player.id) in @favorite_ids && "text-error"]}
                       title={if to_string(player.id) in @favorite_ids, do: "Remove from favorites", else: "Add to favorites"}
                     >
                       <svg :if={to_string(player.id) not in @favorite_ids} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">

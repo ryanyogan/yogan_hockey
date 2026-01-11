@@ -106,7 +106,7 @@ defmodule YoganHockeyWeb.YoganLive do
         <button
           phx-click="switch_tab"
           phx-value-tab="stats"
-          class={"px-4 py-2 text-sm font-medium transition-colors " <>
+          class={"px-4 py-2 text-sm font-medium transition-colors cursor-pointer " <>
             if(@tab == "stats", do: "bg-primary text-primary-content", else: "bg-base-200 text-base-content/70 hover:bg-base-300")}
         >
           Stats
@@ -114,7 +114,7 @@ defmodule YoganHockeyWeb.YoganLive do
         <button
           phx-click="switch_tab"
           phx-value-tab="schedule"
-          class={"px-4 py-2 text-sm font-medium transition-colors " <>
+          class={"px-4 py-2 text-sm font-medium transition-colors cursor-pointer " <>
             if(@tab == "schedule", do: "bg-primary text-primary-content", else: "bg-base-200 text-base-content/70 hover:bg-base-300")}
         >
           Schedule

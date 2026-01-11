@@ -7,24 +7,25 @@ defmodule YoganHockeyWeb.Layouts do
   embed_templates "layouts/*"
 
   @doc """
-  Renders the ESPN-style app layout.
+  Renders the ESPN-style app layout with header, footer, and flash messages.
+  Used as the layout for all LiveViews via live_session in router.
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
+  attr :inner_content, :any, required: true, doc: "the inner content rendered by LiveView"
   attr :current_scope, :map, default: nil
-  slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
     <%!-- ESPN-style Header --%>
     <header class="sticky top-0 z-50 bg-base-200 border-b border-base-300">
       <%!-- Top Bar --%>
-      <div class="bg-base-300">
+      <div class="bg-base-300 overflow-hidden">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-8">
           <div class="flex items-center gap-4 text-[10px] uppercase tracking-wider text-base-content/60">
-            <span>NHL</span>
-            <span>DEL2</span>
+            <span class="hidden sm:inline">NHL</span>
+            <span class="hidden sm:inline">DEL</span>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-shrink-0">
             <.theme_toggle />
           </div>
         </div>
@@ -47,12 +48,12 @@ defmodule YoganHockeyWeb.Layouts do
             <.link navigate={~p"/players"} class="nav-link">Players</.link>
             <.link navigate={~p"/yogan"} class="nav-link">Yogan</.link>
             <.link navigate={~p"/nhl/live"} class="nav-link">
-              <span class="live-indicator">Live</span>
+              <span class="live-indicator">Live Scores</span>
             </.link>
           </div>
 
           <%!-- Mobile Menu Button --%>
-          <label for="mobile-menu" class="md:hidden btn btn-ghost btn-sm p-2">
+          <label for="mobile-menu" class="md:hidden btn btn-ghost btn-sm p-2 cursor-pointer">
             <.icon name="hero-bars-3" class="w-5 h-5" />
           </label>
         </div>
@@ -61,38 +62,32 @@ defmodule YoganHockeyWeb.Layouts do
 
     <%!-- Mobile Menu --%>
     <input type="checkbox" id="mobile-menu" class="hidden peer" />
-    <div class="fixed inset-0 z-40 hidden peer-checked:flex flex-col bg-base-100 md:hidden">
-      <div class="flex items-center justify-between h-12 px-4 border-b border-base-300">
-        <span class="font-bold">Menu</span>
-        <label for="mobile-menu" class="btn btn-ghost btn-sm p-2">
-          <.icon name="hero-x-mark" class="w-5 h-5" />
+    <div
+      id="mobile-menu-panel"
+      phx-hook="MobileMenu"
+      class="fixed inset-0 z-40 hidden peer-checked:flex flex-col bg-base-100 md:hidden"
+    >
+      <div class="flex items-center justify-between h-14 px-4 border-b border-base-300 bg-base-200">
+        <span class="font-bold text-lg">Menu</span>
+        <label for="mobile-menu" class="btn btn-ghost p-3 cursor-pointer">
+          <.icon name="hero-x-mark" class="w-6 h-6" />
         </label>
       </div>
-      <div class="flex-1 p-4 space-y-1">
-        <label for="mobile-menu">
-          <.link navigate={~p"/nhl"} class="block p-3 hover:bg-base-200 font-medium">Standings</.link>
-        </label>
-        <label for="mobile-menu">
-          <.link navigate={~p"/nhl?tab=teams"} class="block p-3 hover:bg-base-200 font-medium">Teams</.link>
-        </label>
-        <label for="mobile-menu">
-          <.link navigate={~p"/players"} class="block p-3 hover:bg-base-200 font-medium">Players</.link>
-        </label>
-        <label for="mobile-menu">
-          <.link navigate={~p"/yogan"} class="block p-3 hover:bg-base-200 font-medium">Andrew Yogan</.link>
-        </label>
-        <label for="mobile-menu">
-          <.link navigate={~p"/nhl/live"} class="block p-3 hover:bg-base-200 font-medium">
-            <span class="live-indicator">Live Scores</span>
-          </.link>
-        </label>
-      </div>
+      <nav class="flex-1 flex flex-col justify-center px-6 py-8">
+        <.link navigate={~p"/nhl"} class="mobile-nav-link">Standings</.link>
+        <.link navigate={~p"/nhl?tab=teams"} class="mobile-nav-link">Teams</.link>
+        <.link navigate={~p"/players"} class="mobile-nav-link">Players</.link>
+        <.link navigate={~p"/yogan"} class="mobile-nav-link">Andrew Yogan</.link>
+        <.link navigate={~p"/nhl/live"} class="mobile-nav-link">
+          <span class="live-indicator">Live Scores</span>
+        </.link>
+      </nav>
     </div>
 
     <%!-- Main Content --%>
     <main class="min-h-screen bg-base-100">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {render_slot(@inner_block)}
+        {@inner_content}
       </div>
     </main>
 
@@ -116,7 +111,7 @@ defmodule YoganHockeyWeb.Layouts do
 
   def flash_group(assigns) do
     ~H"""
-    <div id={@id} aria-live="polite">
+    <div id={@id} aria-live="polite" class="fixed top-16 right-4 z-50 space-y-2">
       <.flash kind={:info} flash={@flash} />
       <.flash kind={:error} flash={@flash} />
 
@@ -152,22 +147,22 @@ defmodule YoganHockeyWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="flex items-center gap-1 bg-base-100 p-0.5">
+    <div class="flex items-center gap-0.5 bg-base-100 p-0.5 rounded-sm flex-shrink-0">
       <button
-        class="p-1.5 hover:bg-base-300 transition-colors"
+        class="p-1 sm:p-1.5 hover:bg-base-300 transition-colors cursor-pointer"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="light"
         title="Light"
       >
-        <.icon name="hero-sun-micro" class="w-3.5 h-3.5" />
+        <.icon name="hero-sun-micro" class="w-3 h-3 sm:w-3.5 sm:h-3.5" />
       </button>
       <button
-        class="p-1.5 hover:bg-base-300 transition-colors"
+        class="p-1 sm:p-1.5 hover:bg-base-300 transition-colors cursor-pointer"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="dark"
         title="Dark"
       >
-        <.icon name="hero-moon-micro" class="w-3.5 h-3.5" />
+        <.icon name="hero-moon-micro" class="w-3 h-3 sm:w-3.5 sm:h-3.5" />
       </button>
     </div>
     """
