@@ -19,13 +19,17 @@ defmodule YoganHockeyWeb.Layouts do
     <%!-- ESPN-style Header --%>
     <header class="sticky top-0 z-50 bg-base-200 border-b border-base-300">
       <%!-- Top Bar --%>
-      <div class="bg-base-300 overflow-hidden">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-8">
-          <div class="flex items-center gap-4 text-[10px] uppercase tracking-wider text-base-content/60">
-            <span class="hidden sm:inline">NHL</span>
-            <span class="hidden sm:inline">DEL</span>
+      <div class="bg-base-300">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-8 overflow-hidden">
+          <div class="flex items-center gap-4 text-[10px] uppercase tracking-wider flex-shrink-0 mt-7 sm:mt-0">
+            <.link navigate={~p"/nhl?tab=teams"} class="text-base-content/60 hover:text-primary transition-colors">
+              NHL
+            </.link>
+            <.link navigate={~p"/yogan"} class="text-base-content/60 hover:text-primary transition-colors">
+              DEL
+            </.link>
           </div>
-          <div class="flex items-center gap-2 flex-shrink-0">
+          <div class="flex-shrink-0">
             <.theme_toggle />
           </div>
         </div>

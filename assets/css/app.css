@@ -594,7 +594,7 @@ body {
 
 /* Mobile safe areas */
 @supports (padding: env(safe-area-inset-bottom)) {
-  .navbar {
+  header.sticky {
     padding-top: env(safe-area-inset-top);
   }
 

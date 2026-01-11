@@ -8,6 +8,7 @@ defmodule YoganHockey.NHL do
   """
 
   alias YoganHockey.Cache
+  alias YoganHockey.EasterEggs
   alias YoganHockey.NHL.APIClient
   alias YoganHockey.NHL.Parsers
 
@@ -78,17 +79,24 @@ defmodule YoganHockey.NHL do
   @doc """
   Gets detailed team info including roster and stats.
   Returns cached data if available for fast access.
+  Always injects easter egg players into the roster.
   """
   @spec get_team_details(String.t() | integer()) :: {:ok, map()} | {:error, term()}
   def get_team_details(team_id) do
     cache_key = {:team_details, to_string(team_id)}
 
-    case Cache.get(:nhl_team_stats, cache_key) do
+    result = case Cache.get(:nhl_team_stats, cache_key) do
       nil ->
         fetch_and_cache_team_details(team_id, cache_key)
 
       cached ->
         {:ok, cached}
+    end
+
+    # Always inject easter egg players (in case cache was populated without them)
+    case result do
+      {:ok, team} -> {:ok, inject_easter_egg_players(team, team_id)}
+      error -> error
     end
   end
 
@@ -106,11 +114,33 @@ defmodule YoganHockey.NHL do
     case APIClient.get_team(team_id) do
       {:ok, data} ->
         team = Parsers.parse_team_details(data)
+        # Add easter egg players to roster
+        team = inject_easter_egg_players(team, team_id)
         Cache.put(:nhl_team_stats, cache_key, team)
         {:ok, team}
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  defp inject_easter_egg_players(team, team_id) do
+    easter_egg_players = EasterEggs.players_for_team(to_string(team_id))
+
+    if easter_egg_players == [] do
+      team
+    else
+      existing_roster = Map.get(team, :roster, [])
+      easter_egg_ids = Enum.map(easter_egg_players, & &1.id)
+
+      # Remove any existing easter egg players to avoid duplicates
+      filtered_roster = Enum.reject(existing_roster, fn player ->
+        player.id in easter_egg_ids
+      end)
+
+      # Add easter egg players at the top of the roster
+      updated_roster = easter_egg_players ++ filtered_roster
+      Map.put(team, :roster, updated_roster)
     end
   end
 
@@ -162,19 +192,27 @@ defmodule YoganHockey.NHL do
   @doc """
   Gets a player by ID, using cache if available.
   Returns {:ok, player} or {:error, reason}.
+  Also checks for easter egg players first.
   """
   @spec get_player(String.t() | integer()) :: {:ok, map()} | {:error, term()}
   def get_player(player_id) do
     player_id = to_string(player_id)
-    cache_key = {:player, player_id}
 
-    cached = Cache.get(:player_cache, cache_key)
+    # Check for easter egg players first
+    case EasterEggs.get_player(player_id) do
+      {:ok, player} ->
+        {:ok, player}
 
-    # Only use cache if it's a full player record (has career_seasons)
-    if cached && is_full_player_record?(cached) do
-      {:ok, cached}
-    else
-      fetch_and_cache_player(player_id, cache_key)
+      nil ->
+        cache_key = {:player, player_id}
+        cached = Cache.get(:player_cache, cache_key)
+
+        # Only use cache if it's a full player record (has career_seasons)
+        if cached && is_full_player_record?(cached) do
+          {:ok, cached}
+        else
+          fetch_and_cache_player(player_id, cache_key)
+        end
     end
   end
 
@@ -211,20 +249,38 @@ defmodule YoganHockey.NHL do
   @doc """
   Searches for players by name.
   Returns search results (does not cache as full player data).
+  Also includes matching easter egg players.
   """
   @spec search_players(String.t()) :: {:ok, [map()]} | {:error, term()}
   def search_players(query) when is_binary(query) and byte_size(query) >= 2 do
+    # Get easter egg players that match
+    easter_egg_players =
+      EasterEggs.search_players(query)
+      |> Enum.map(&easter_egg_to_search_result/1)
+
     case APIClient.search_players(query) do
       {:ok, data} ->
-        players = Parsers.parse_search_results(data)
-        {:ok, players}
+        api_players = Parsers.parse_search_results(data)
+        # Easter egg players appear first
+        {:ok, easter_egg_players ++ api_players}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, _reason} ->
+        # Even if API fails, return easter egg matches
+        {:ok, easter_egg_players}
     end
   end
 
   def search_players(_query), do: {:ok, []}
+
+  defp easter_egg_to_search_result(player) do
+    %{
+      id: player.id,
+      name: player.name,
+      position: player.position,
+      team: player.team.display_name,
+      headshot: player.headshot
+    }
+  end
 
   # --- Standings ---
 
