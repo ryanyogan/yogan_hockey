@@ -136,11 +136,12 @@ defmodule YoganHockeyWeb.ScoreboardComponents do
           </span>
         </div>
       </div>
-      <div :if={@game.status.state == "in"} class="game-status live">
-        {period_display(@game.status.period)} - {@game.status.display_clock || ""}
-      </div>
-      <div :if={@game.venue} class="game-status">
-        {@game.venue.name}
+      <div class="game-status flex justify-between items-center">
+        <span :if={@game.status.state == "in"} class="font-mono text-error">
+          {period_display(@game.status.period)} {@game.status.display_clock || ""}
+        </span>
+        <span :if={@game.status.state != "in"}></span>
+        <span :if={@game.venue} class="text-base-content/50 truncate">{@game.venue.name}</span>
       </div>
     </div>
     """

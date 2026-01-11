@@ -73,11 +73,33 @@ defmodule YoganHockey.NHL.LiveScoresServer do
           {:live_scores_updated, games}
         )
 
+        # Refresh team details for teams currently playing
+        refresh_playing_team_details(games)
+
         %{state | last_poll: DateTime.utc_now()}
 
       {:error, reason} ->
         Logger.warning("Failed to fetch live scores: #{inspect(reason)}")
         state
+    end
+  end
+
+  # Refresh team details for teams that are currently playing
+  defp refresh_playing_team_details(games) do
+    live_games = Enum.filter(games, &(&1.status.state == "in"))
+
+    if live_games != [] do
+      team_ids =
+        live_games
+        |> Enum.flat_map(fn game ->
+          [game.home_team.id, game.away_team.id]
+        end)
+        |> Enum.uniq()
+        |> Enum.filter(&(&1 != nil))
+
+      if team_ids != [] do
+        YoganHockey.NHL.TeamsServer.refresh_team_details(team_ids)
+      end
     end
   end
 end

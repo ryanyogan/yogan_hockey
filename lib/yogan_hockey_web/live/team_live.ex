@@ -16,9 +16,15 @@ defmodule YoganHockeyWeb.TeamLive do
         standings = get_team_standings(team_id)
         schedule = get_team_schedule(team_id)
 
+        # Trigger background refresh to update cache with fresh data
+        if connected?(socket) do
+          refresh_team_in_background(team_id)
+        end
+
         {:ok,
          socket
          |> assign(:page_title, team.display_name || team.name)
+         |> assign(:team_id, team_id)
          |> assign(:team, team)
          |> assign(:basic_team, basic_team)
          |> assign(:standings, standings)
@@ -30,6 +36,7 @@ defmodule YoganHockeyWeb.TeamLive do
         {:ok,
          socket
          |> assign(:page_title, "Team Not Found")
+         |> assign(:team_id, team_id)
          |> assign(:team, nil)
          |> assign(:basic_team, nil)
          |> assign(:standings, nil)
@@ -37,6 +44,21 @@ defmodule YoganHockeyWeb.TeamLive do
          |> assign(:tab, "schedule")
          |> assign(:favorite_ids, [])}
     end
+  end
+
+  # Refresh team data in background and send update to LiveView
+  defp refresh_team_in_background(team_id) do
+    pid = self()
+
+    Task.start(fn ->
+      case NHL.refresh_team_details(team_id) do
+        {:ok, team} ->
+          send(pid, {:team_refreshed, team})
+
+        {:error, _reason} ->
+          :ok
+      end
+    end)
   end
 
   defp get_team_standings(team_id) do
@@ -49,6 +71,12 @@ defmodule YoganHockeyWeb.TeamLive do
       {:ok, schedule} -> schedule
       _ -> %{past_games: [], upcoming_games: []}
     end
+  end
+
+  @impl true
+  def handle_info({:team_refreshed, team}, socket) do
+    # Update the team data with fresh data from background refresh
+    {:noreply, assign(socket, :team, team)}
   end
 
   @impl true

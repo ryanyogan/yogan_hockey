@@ -77,6 +77,7 @@ defmodule YoganHockey.NHL do
 
   @doc """
   Gets detailed team info including roster and stats.
+  Returns cached data if available for fast access.
   """
   @spec get_team_details(String.t() | integer()) :: {:ok, map()} | {:error, term()}
   def get_team_details(team_id) do
@@ -84,18 +85,32 @@ defmodule YoganHockey.NHL do
 
     case Cache.get(:nhl_team_stats, cache_key) do
       nil ->
-        case APIClient.get_team(team_id) do
-          {:ok, data} ->
-            team = Parsers.parse_team_details(data)
-            Cache.put(:nhl_team_stats, cache_key, team)
-            {:ok, team}
-
-          {:error, reason} ->
-            {:error, reason}
-        end
+        fetch_and_cache_team_details(team_id, cache_key)
 
       cached ->
         {:ok, cached}
+    end
+  end
+
+  @doc """
+  Forces a fresh fetch of team details, bypassing cache.
+  Updates the cache with new data.
+  """
+  @spec refresh_team_details(String.t() | integer()) :: {:ok, map()} | {:error, term()}
+  def refresh_team_details(team_id) do
+    cache_key = {:team_details, to_string(team_id)}
+    fetch_and_cache_team_details(team_id, cache_key)
+  end
+
+  defp fetch_and_cache_team_details(team_id, cache_key) do
+    case APIClient.get_team(team_id) do
+      {:ok, data} ->
+        team = Parsers.parse_team_details(data)
+        Cache.put(:nhl_team_stats, cache_key, team)
+        {:ok, team}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

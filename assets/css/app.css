@@ -311,7 +311,7 @@
   }
 
   .game-status {
-    @apply text-center text-xs py-2 border-t border-base-300/50 text-base-content/60;
+    @apply text-xs px-3 py-2 border-t border-base-300/50 text-base-content/60;
   }
 
   .game-status.live {

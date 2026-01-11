@@ -2,7 +2,7 @@ defmodule YoganHockey.NHL.TeamsServer do
   @moduledoc """
   GenServer that polls NHL teams and standings every 5 minutes.
 
-  Less frequent polling since this data doesn't change as often.
+  On startup, pre-populates the ETS cache with all team details for fast access.
   """
 
   use GenServer
@@ -26,6 +26,14 @@ defmodule YoganHockey.NHL.TeamsServer do
     GenServer.cast(__MODULE__, :refresh)
   end
 
+  @doc """
+  Pre-populates the cache with team details for specific team IDs.
+  Called when teams are playing live games.
+  """
+  def refresh_team_details(team_ids) when is_list(team_ids) do
+    GenServer.cast(__MODULE__, {:refresh_team_details, team_ids})
+  end
+
   # --- Server Callbacks ---
 
   @impl true
@@ -35,7 +43,10 @@ defmodule YoganHockey.NHL.TeamsServer do
     # Initial fetch
     send(self(), :poll)
 
-    {:ok, %{last_poll: nil}}
+    # Pre-populate all team details after initial teams load
+    send(self(), :prepopulate_team_details)
+
+    {:ok, %{last_poll: nil, prepopulated: false}}
   end
 
   @impl true
@@ -49,9 +60,35 @@ defmodule YoganHockey.NHL.TeamsServer do
   end
 
   @impl true
+  def handle_info(:prepopulate_team_details, %{prepopulated: true} = state) do
+    # Already prepopulated, skip
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:prepopulate_team_details, state) do
+    # Wait a bit for initial teams to load, then prepopulate
+    Process.sleep(2000)
+    prepopulate_all_team_details()
+    {:noreply, %{state | prepopulated: true}}
+  end
+
+  @impl true
   def handle_cast(:refresh, state) do
     new_state = do_poll(state)
     {:noreply, new_state}
+  end
+
+  @impl true
+  def handle_cast({:refresh_team_details, team_ids}, state) do
+    # Refresh team details in background for playing teams
+    Task.start(fn ->
+      Enum.each(team_ids, fn team_id ->
+        refresh_single_team_detail(team_id)
+      end)
+    end)
+
+    {:noreply, state}
   end
 
   # --- Private ---
@@ -88,5 +125,47 @@ defmodule YoganHockey.NHL.TeamsServer do
     end
 
     %{state | last_poll: DateTime.utc_now()}
+  end
+
+  defp prepopulate_all_team_details do
+    teams = NHL.list_teams()
+
+    if teams == [] do
+      Logger.warning("No teams available to prepopulate - will retry later")
+      # Retry in 30 seconds
+      Process.send_after(self(), :prepopulate_team_details, 30_000)
+    else
+      Logger.info("Pre-populating team details for #{length(teams)} teams...")
+
+      teams
+      |> Enum.map(& &1.id)
+      |> Enum.chunk_every(4)
+      |> Enum.each(fn chunk ->
+        # Fetch in parallel batches of 4
+        tasks =
+          Enum.map(chunk, fn team_id ->
+            Task.async(fn -> refresh_single_team_detail(team_id) end)
+          end)
+
+        Task.await_many(tasks, 30_000)
+
+        # Small delay between batches to avoid rate limiting
+        Process.sleep(500)
+      end)
+
+      Logger.info("Finished pre-populating team details for #{length(teams)} teams")
+    end
+  end
+
+  defp refresh_single_team_detail(team_id) do
+    case NHL.get_team_details(team_id) do
+      {:ok, _team} ->
+        Logger.debug("Pre-populated team details for team #{team_id}")
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Failed to pre-populate team #{team_id}: #{inspect(reason)}")
+        :error
+    end
   end
 end
