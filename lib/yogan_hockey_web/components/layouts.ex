@@ -34,16 +34,17 @@ defmodule YoganHockeyWeb.Layouts do
       <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-12">
           <%!-- Logo --%>
-          <a href="/" class="flex items-center gap-2 font-bold text-lg tracking-tight">
-            <span class="text-xl">🏒</span>
-            <span class="hidden sm:inline">YoganHockey</span>
-          </a>
+          <.link navigate={~p"/"} class="flex items-center gap-1 group">
+            <span class="font-mono font-bold text-sm tracking-tighter uppercase">
+              <span class="text-primary">YOGAN</span><span class="text-base-content/80">HOCKEY</span>
+            </span>
+          </.link>
 
           <%!-- Desktop Nav --%>
           <div class="hidden md:flex items-center">
-            <.link navigate={~p"/"} class="nav-link">Scores</.link>
             <.link navigate={~p"/nhl"} class="nav-link">Standings</.link>
-            <.link navigate={~p"/nhl"} class="nav-link">Teams</.link>
+            <.link navigate={~p"/nhl?tab=teams"} class="nav-link">Teams</.link>
+            <.link navigate={~p"/players"} class="nav-link">Players</.link>
             <.link navigate={~p"/yogan"} class="nav-link">Yogan</.link>
             <.link navigate={~p"/nhl/live"} class="nav-link">
               <span class="live-indicator">Live</span>
@@ -69,24 +70,16 @@ defmodule YoganHockeyWeb.Layouts do
       </div>
       <div class="flex-1 p-4 space-y-1">
         <label for="mobile-menu">
-          <.link navigate={~p"/"} class="block p-3 hover:bg-base-200 font-medium">
-            Scores
-          </.link>
+          <.link navigate={~p"/nhl"} class="block p-3 hover:bg-base-200 font-medium">Standings</.link>
         </label>
         <label for="mobile-menu">
-          <.link navigate={~p"/nhl"} class="block p-3 hover:bg-base-200 font-medium">
-            Standings
-          </.link>
+          <.link navigate={~p"/nhl?tab=teams"} class="block p-3 hover:bg-base-200 font-medium">Teams</.link>
         </label>
         <label for="mobile-menu">
-          <.link navigate={~p"/nhl"} class="block p-3 hover:bg-base-200 font-medium">
-            Teams
-          </.link>
+          <.link navigate={~p"/players"} class="block p-3 hover:bg-base-200 font-medium">Players</.link>
         </label>
         <label for="mobile-menu">
-          <.link navigate={~p"/yogan"} class="block p-3 hover:bg-base-200 font-medium">
-            Andrew Yogan
-          </.link>
+          <.link navigate={~p"/yogan"} class="block p-3 hover:bg-base-200 font-medium">Andrew Yogan</.link>
         </label>
         <label for="mobile-menu">
           <.link navigate={~p"/nhl/live"} class="block p-3 hover:bg-base-200 font-medium">

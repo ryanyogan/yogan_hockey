@@ -30,8 +30,16 @@ defmodule YoganHockeyWeb.NHLLive do
   end
 
   @impl true
-  def handle_event("switch_tab", %{"tab" => tab}, socket) do
+  def handle_params(params, _uri, socket) do
+    tab = params["tab"] || "standings"
+    # Validate tab value
+    tab = if tab in ["standings", "teams"], do: tab, else: "standings"
     {:noreply, assign(socket, :tab, tab)}
+  end
+
+  @impl true
+  def handle_event("switch_tab", %{"tab" => tab}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/nhl?tab=#{tab}")}
   end
 
   @impl true

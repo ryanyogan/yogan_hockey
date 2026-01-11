@@ -129,22 +129,21 @@
       <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-12">
           <%!-- Logo --%>
-          <a href="/" class="flex items-center gap-1 group">
+          <.link navigate={~p"/"} class="flex items-center gap-1 group">
             <span class="font-mono font-bold text-sm tracking-tighter uppercase">
               <span class="text-primary">YOGAN</span><span class="text-base-content/80">HOCKEY</span>
             </span>
-          </a>
+          </.link>
 
           <%!-- Desktop Nav --%>
           <div class="hidden md:flex items-center">
-            <a href="/" class="nav-link">Scores</a>
-            <a href="/nhl" class="nav-link">Standings</a>
-            <a href="/nhl" class="nav-link">Teams</a>
-            <a href="/players" class="nav-link">Players</a>
-            <a href="/yogan" class="nav-link">Yogan</a>
-            <a href="/nhl/live" class="nav-link">
+            <.link navigate={~p"/nhl"} class="nav-link">Standings</.link>
+            <.link navigate={~p"/nhl?tab=teams"} class="nav-link">Teams</.link>
+            <.link navigate={~p"/players"} class="nav-link">Players</.link>
+            <.link navigate={~p"/yogan"} class="nav-link">Yogan</.link>
+            <.link navigate={~p"/nhl/live"} class="nav-link">
               <span class="live-indicator">Live</span>
-            </a>
+            </.link>
           </div>
 
           <%!-- Mobile Menu Button --%>
@@ -166,24 +165,21 @@
       </div>
       <div class="flex-1 p-4 space-y-1">
         <label for="mobile-menu">
-          <a href="/" class="block p-3 hover:bg-base-200 font-medium">Scores</a>
+          <.link navigate={~p"/nhl"} class="block p-3 hover:bg-base-200 font-medium">Standings</.link>
         </label>
         <label for="mobile-menu">
-          <a href="/nhl" class="block p-3 hover:bg-base-200 font-medium">Standings</a>
+          <.link navigate={~p"/nhl?tab=teams"} class="block p-3 hover:bg-base-200 font-medium">Teams</.link>
         </label>
         <label for="mobile-menu">
-          <a href="/nhl" class="block p-3 hover:bg-base-200 font-medium">Teams</a>
+          <.link navigate={~p"/players"} class="block p-3 hover:bg-base-200 font-medium">Players</.link>
         </label>
         <label for="mobile-menu">
-          <a href="/players" class="block p-3 hover:bg-base-200 font-medium">Players</a>
+          <.link navigate={~p"/yogan"} class="block p-3 hover:bg-base-200 font-medium">Andrew Yogan</.link>
         </label>
         <label for="mobile-menu">
-          <a href="/yogan" class="block p-3 hover:bg-base-200 font-medium">Andrew Yogan</a>
-        </label>
-        <label for="mobile-menu">
-          <a href="/nhl/live" class="block p-3 hover:bg-base-200 font-medium">
+          <.link navigate={~p"/nhl/live"} class="block p-3 hover:bg-base-200 font-medium">
             <span class="live-indicator">Live Scores</span>
-          </a>
+          </.link>
         </label>
       </div>
     </div>
