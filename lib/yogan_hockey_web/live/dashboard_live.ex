@@ -7,6 +7,7 @@ defmodule YoganHockeyWeb.DashboardLive do
   alias YoganHockey.NHL
   alias YoganHockey.DEL2
   alias YoganHockey.LiveGames.PredictionServer
+  alias YoganHockeyWeb.SEO
 
   import YoganHockeyWeb.HockeyComponents
 
@@ -35,7 +36,12 @@ defmodule YoganHockeyWeb.DashboardLive do
 
     {:ok,
      socket
-     |> assign(:page_title, "Dashboard")
+     |> SEO.put_seo(
+       title: "Live NHL Stats & Player Tracking",
+       description: "Real-time NHL scores, standings, and stats. Track your favorite players, view live game updates, and follow Andrew Yogan's career.",
+       image: "/images/og/default.svg",
+       url: "/"
+     )
      |> assign(:live_games, games)
      |> assign(:predictions, predictions)
      |> assign(:injuries, injuries)

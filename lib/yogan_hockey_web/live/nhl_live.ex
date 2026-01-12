@@ -5,6 +5,7 @@ defmodule YoganHockeyWeb.NHLLive do
   use YoganHockeyWeb, :live_view
 
   alias YoganHockey.NHL
+  alias YoganHockeyWeb.SEO
 
   import YoganHockeyWeb.HockeyComponents
 
@@ -22,7 +23,12 @@ defmodule YoganHockeyWeb.NHLLive do
 
     {:ok,
      socket
-     |> assign(:page_title, "NHL")
+     |> SEO.put_seo(
+       title: "NHL Standings & Teams",
+       description: "Complete NHL standings by conference and division. Browse all 32 teams, view records, and track playoff races.",
+       image: "/images/og/standings.svg",
+       url: "/nhl"
+     )
      |> assign(:teams, teams)
      |> assign(:standings, standings)
      |> assign(:live_games, live_games)

@@ -5,6 +5,7 @@ defmodule YoganHockeyWeb.TeamLive do
   use YoganHockeyWeb, :live_view
 
   alias YoganHockey.NHL
+  alias YoganHockeyWeb.SEO
 
   import YoganHockeyWeb.Helpers.StatsHelpers, only: [format_diff: 1, diff_class: 1, get_stat: 2]
   import YoganHockeyWeb.PlayerComponents, only: [injury_row: 1]
@@ -23,31 +24,49 @@ defmodule YoganHockeyWeb.TeamLive do
           refresh_team_in_background(team_id)
         end
 
+        team_name = team.display_name || team.name
+        description = "#{team_name} schedule, roster, stats, and injury reports. Get the latest on your favorite NHL team."
+
         {:ok,
          socket
-         |> assign(:page_title, team.display_name || team.name)
+         |> SEO.put_seo(
+           title: team_name,
+           description: description,
+           image: "/images/og/team.svg",
+           url: "/nhl/teams/#{team_id}"
+         )
          |> assign(:team_id, team_id)
          |> assign(:team, team)
          |> assign(:basic_team, basic_team)
          |> assign(:standings, standings)
          |> assign(:schedule, schedule)
          |> assign(:injuries, injuries)
-         |> assign(:tab, "schedule")
          |> assign(:favorite_ids, [])}
 
       {:error, _reason} ->
         {:ok,
          socket
-         |> assign(:page_title, "Team Not Found")
+         |> SEO.put_seo(
+           title: "Team Not Found",
+           description: "The requested team could not be found.",
+           url: "/nhl/teams/#{team_id}"
+         )
          |> assign(:team_id, team_id)
          |> assign(:team, nil)
          |> assign(:basic_team, nil)
          |> assign(:standings, nil)
          |> assign(:schedule, nil)
          |> assign(:injuries, [])
-         |> assign(:tab, "schedule")
          |> assign(:favorite_ids, [])}
     end
+  end
+
+  @valid_tabs ~w(schedule roster stats injuries)
+
+  @impl true
+  def handle_params(params, _uri, socket) do
+    tab = if params["tab"] in @valid_tabs, do: params["tab"], else: "schedule"
+    {:noreply, assign(socket, :tab, tab)}
   end
 
   # Refresh team data in background and send update to LiveView
@@ -99,11 +118,6 @@ defmodule YoganHockeyWeb.TeamLive do
   end
 
   @impl true
-  def handle_event("switch_tab", %{"tab" => tab}, socket) do
-    {:noreply, assign(socket, :tab, tab)}
-  end
-
-  @impl true
   def render(assigns) do
     ~H"""
     <div id="team-page" phx-hook="FavoritePlayers" class="space-y-6">
@@ -149,35 +163,31 @@ defmodule YoganHockeyWeb.TeamLive do
 
         <%!-- Tab Navigation --%>
         <div class="flex gap-2">
-          <button
-            phx-click="switch_tab"
-            phx-value-tab="schedule"
-            class={["text-xs px-4 py-2 cursor-pointer", @tab == "schedule" && "bg-primary text-primary-content", @tab != "schedule" && "bg-base-300"]}
+          <.link
+            patch={~p"/nhl/teams/#{@team_id}"}
+            class={["text-xs px-4 py-2", @tab == "schedule" && "bg-primary text-primary-content", @tab != "schedule" && "bg-base-300"]}
           >
             Schedule
-          </button>
-          <button
-            phx-click="switch_tab"
-            phx-value-tab="roster"
-            class={["text-xs px-4 py-2 cursor-pointer", @tab == "roster" && "bg-primary text-primary-content", @tab != "roster" && "bg-base-300"]}
+          </.link>
+          <.link
+            patch={~p"/nhl/teams/#{@team_id}?tab=roster"}
+            class={["text-xs px-4 py-2", @tab == "roster" && "bg-primary text-primary-content", @tab != "roster" && "bg-base-300"]}
           >
             Roster
-          </button>
-          <button
-            phx-click="switch_tab"
-            phx-value-tab="stats"
-            class={["text-xs px-4 py-2 cursor-pointer", @tab == "stats" && "bg-primary text-primary-content", @tab != "stats" && "bg-base-300"]}
+          </.link>
+          <.link
+            patch={~p"/nhl/teams/#{@team_id}?tab=stats"}
+            class={["text-xs px-4 py-2", @tab == "stats" && "bg-primary text-primary-content", @tab != "stats" && "bg-base-300"]}
           >
             Stats
-          </button>
-          <button
-            phx-click="switch_tab"
-            phx-value-tab="injuries"
-            class={["text-xs px-4 py-2 cursor-pointer", @tab == "injuries" && "bg-primary text-primary-content", @tab != "injuries" && "bg-base-300"]}
+          </.link>
+          <.link
+            patch={~p"/nhl/teams/#{@team_id}?tab=injuries"}
+            class={["text-xs px-4 py-2", @tab == "injuries" && "bg-primary text-primary-content", @tab != "injuries" && "bg-base-300"]}
           >
             Injuries
             <span :if={@injuries != []} class="ml-1 text-error">({length(@injuries)})</span>
-          </button>
+          </.link>
         </div>
 
         <%!-- Schedule Tab --%>

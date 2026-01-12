@@ -7,6 +7,16 @@ defmodule YoganHockeyWeb.Layouts do
   embed_templates "layouts/*"
 
   @doc """
+  Generates the meta title from assigns.
+  """
+  def meta_title(assigns) do
+    case assigns[:page_title] do
+      nil -> "YoganHockey | Live NHL Stats & Player Tracking"
+      title -> "#{title} | YoganHockey"
+    end
+  end
+
+  @doc """
   Renders the ESPN-style app layout with header, footer, and flash messages.
   Used as the layout for all LiveViews via live_session in router.
   """

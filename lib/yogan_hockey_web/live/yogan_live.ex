@@ -5,6 +5,7 @@ defmodule YoganHockeyWeb.YoganLive do
   use YoganHockeyWeb, :live_view
 
   alias YoganHockey.DEL2
+  alias YoganHockeyWeb.SEO
 
   import YoganHockeyWeb.HockeyComponents
   import YoganHockeyWeb.Helpers.StatsHelpers
@@ -21,7 +22,13 @@ defmodule YoganHockeyWeb.YoganLive do
 
     {:ok,
      socket
-     |> assign(:page_title, "Andrew Yogan")
+     |> SEO.put_seo(
+       title: "Andrew Yogan",
+       description: "Andrew Yogan's complete hockey stats and career history. Current season performance in the DEL, career statistics, and team schedule.",
+       image: "/images/og/yogan.svg",
+       url: "/yogan",
+       type: "profile"
+     )
      |> assign(:player, stats.player)
      |> assign(:current_season, stats.current_season)
      |> assign(:career_stats, stats.career_stats)
@@ -60,8 +67,8 @@ defmodule YoganHockeyWeb.YoganLive do
         <span class="featured-badge">{@player[:league] || "DEL"}</span>
         <div class="relative z-10 flex flex-col lg:flex-row gap-6">
           <%!-- Avatar --%>
-          <div class="w-24 h-24 lg:w-32 lg:h-32 bg-base-300 flex items-center justify-center text-5xl shrink-0">
-            🏒
+          <div class="w-24 h-24 lg:w-32 lg:h-32 bg-base-300 shrink-0 overflow-hidden">
+            <img src={~p"/images/yogan.jpg"} alt="Andrew Yogan" class="w-full h-full object-cover" />
           </div>
 
           <%!-- Info --%>

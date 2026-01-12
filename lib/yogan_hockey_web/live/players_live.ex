@@ -5,6 +5,7 @@ defmodule YoganHockeyWeb.PlayersLive do
   use YoganHockeyWeb, :live_view
 
   alias YoganHockey.NHL
+  alias YoganHockeyWeb.SEO
 
   import YoganHockeyWeb.HockeyComponents
 
@@ -19,7 +20,12 @@ defmodule YoganHockeyWeb.PlayersLive do
 
     {:ok,
      socket
-     |> assign(:page_title, "Players")
+     |> SEO.put_seo(
+       title: "NHL Players",
+       description: "Search NHL players, track your favorites, and view current injuries. Get detailed player stats and career information.",
+       image: "/images/og/players.svg",
+       url: "/players"
+     )
      |> assign(:favorite_ids, [])
      |> assign(:search_query, "")
      |> assign(:search_results, [])

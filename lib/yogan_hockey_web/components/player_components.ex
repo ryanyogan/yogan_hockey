@@ -35,8 +35,8 @@ defmodule YoganHockeyWeb.PlayerComponents do
         <div class="relative z-10">
           <div class="flex items-center gap-4">
             <%!-- Player Avatar --%>
-            <div class="w-16 h-16 sm:w-20 sm:h-20 bg-base-300 flex items-center justify-center text-3xl shrink-0">
-              <span>🏒</span>
+            <div class="w-16 h-16 sm:w-20 sm:h-20 bg-base-300 shrink-0 overflow-hidden">
+              <img src={~p"/images/yogan.jpg"} alt={@player.name} class="w-full h-full object-cover" />
             </div>
             <%!-- Player Info --%>
             <div class="flex-1 min-w-0">

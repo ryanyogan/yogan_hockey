@@ -6,6 +6,7 @@ defmodule YoganHockeyWeb.LiveScoresLive do
 
   alias YoganHockey.NHL
   alias YoganHockey.LiveGames.PredictionServer
+  alias YoganHockeyWeb.SEO
 
   import YoganHockeyWeb.HockeyComponents
 
@@ -33,7 +34,12 @@ defmodule YoganHockeyWeb.LiveScoresLive do
 
     {:ok,
      socket
-     |> assign(:page_title, "Live Scores")
+     |> SEO.put_seo(
+       title: "Live Scores",
+       description: "Real-time NHL game scores, live updates, and AI-powered game predictions. Follow every goal, assist, and save as it happens.",
+       image: "/images/og/live-scores.svg",
+       url: "/nhl/live"
+     )
      |> assign(:games, games)
      |> assign(:last_updated, last_updated)
      |> assign(:predictions, predictions)

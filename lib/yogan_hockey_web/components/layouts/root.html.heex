@@ -6,15 +6,16 @@
     <meta name="csrf-token" content={get_csrf_token()} />
 
     <%!-- Primary Meta Tags --%>
-    <.live_title default="YoganHockey" suffix=" | Live NHL Stats & Player Tracking">
-      {assigns[:page_title]}
+    <.live_title suffix=" | YoganHockey">
+      {assigns[:page_title] || "Live NHL Stats & Player Tracking"}
     </.live_title>
-    <meta name="title" content="YoganHockey | Live NHL Stats & Player Tracking" />
-    <meta name="description" content="Real-time NHL scores, standings, and stats. Follow Andrew Yogan's career from the AHL to DEL. Live game updates, team schedules, and comprehensive hockey statistics." />
+    <meta name="title" content={meta_title(assigns)} />
+    <meta name="description" content={assigns[:meta_description] || "Real-time NHL scores, standings, and stats. Follow Andrew Yogan's career from the AHL to DEL. Live game updates, team schedules, and comprehensive hockey statistics."} />
     <meta name="keywords" content="NHL, hockey, stats, live scores, Andrew Yogan, DEL, standings, teams, player stats" />
     <meta name="author" content="YoganHockey" />
     <meta name="robots" content="index, follow" />
     <meta name="language" content="English" />
+    <link rel="canonical" href={assigns[:og_url] || "https://yoganhockey.com/"} />
 
     <%!-- Theme & App --%>
     <meta name="theme-color" content="#0f172a" />
@@ -24,25 +25,24 @@
     <meta name="apple-mobile-web-app-title" content="YoganHockey" />
 
     <%!-- Open Graph / Facebook / iMessage --%>
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://yoganhockey.com/" />
-    <meta property="og:title" content="YoganHockey | Live NHL Stats & Player Tracking" />
-    <meta property="og:description" content="Real-time NHL scores, standings, and stats. Follow Andrew Yogan's career. Live game updates and comprehensive hockey statistics." />
-    <meta property="og:image" content="https://yoganhockey.com/images/og-image.svg" />
+    <meta property="og:type" content={assigns[:og_type] || "website"} />
+    <meta property="og:url" content={assigns[:og_url] || "https://yoganhockey.com/"} />
+    <meta property="og:title" content={assigns[:og_title] || "YoganHockey | Live NHL Stats & Player Tracking"} />
+    <meta property="og:description" content={assigns[:og_description] || "Real-time NHL scores, standings, and stats. Follow Andrew Yogan's career. Live game updates and comprehensive hockey statistics."} />
+    <meta property="og:image" content={assigns[:og_image] || "https://yoganhockey.com/images/og/default.svg"} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="YoganHockey - Live NHL Stats featuring career statistics" />
+    <meta property="og:image:alt" content={assigns[:og_title] || "YoganHockey - Live NHL Stats"} />
     <meta property="og:site_name" content="YoganHockey" />
     <meta property="og:locale" content="en_US" />
 
     <%!-- Twitter / X --%>
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://yoganhockey.com/" />
-    <meta name="twitter:title" content="YoganHockey | Live NHL Stats" />
-    <meta name="twitter:description" content="Real-time NHL scores, standings, and stats. Follow Andrew Yogan's career from AHL to DEL." />
-    <meta name="twitter:image" content="https://yoganhockey.com/images/og-image.svg" />
-    <meta name="twitter:image:alt" content="YoganHockey - Live NHL Stats" />
-    <meta name="twitter:creator" content="@yoganhockey" />
+    <meta name="twitter:card" content={assigns[:twitter_card] || "summary_large_image"} />
+    <meta name="twitter:url" content={assigns[:og_url] || "https://yoganhockey.com/"} />
+    <meta name="twitter:title" content={assigns[:og_title] || "YoganHockey | Live NHL Stats"} />
+    <meta name="twitter:description" content={assigns[:og_description] || "Real-time NHL scores, standings, and stats. Follow Andrew Yogan's career from AHL to DEL."} />
+    <meta name="twitter:image" content={assigns[:og_image] || "https://yoganhockey.com/images/og/default.svg"} />
+    <meta name="twitter:image:alt" content={assigns[:og_title] || "YoganHockey - Live NHL Stats"} />
 
     <%!-- Favicon --%>
     <link rel="icon" type="image/svg+xml" href={~p"/images/logo.svg"} />

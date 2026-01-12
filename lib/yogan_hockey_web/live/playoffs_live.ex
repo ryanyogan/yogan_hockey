@@ -10,6 +10,7 @@ defmodule YoganHockeyWeb.PlayoffsLive do
 
   alias YoganHockey.Playoffs
   alias YoganHockey.Playoffs.PredictionServer
+  alias YoganHockeyWeb.SEO
 
   @impl true
   def mount(_params, _session, socket) do
@@ -22,7 +23,12 @@ defmodule YoganHockeyWeb.PlayoffsLive do
 
     {:ok,
      socket
-     |> assign(:page_title, "NHL Playoffs")
+     |> SEO.put_seo(
+       title: "NHL Playoffs",
+       description: "AI-powered NHL playoff predictions and bracket analysis. See Stanley Cup odds, conference predictions, and series matchup probabilities.",
+       image: "/images/og/playoffs.svg",
+       url: "/playoffs"
+     )
      |> assign(:active_tab, :picture)
      |> assign(:generating, generating)
      |> assign_async(:playoff_picture, fn -> load_playoff_picture() end)}

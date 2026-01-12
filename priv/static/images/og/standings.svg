@@ -1,0 +1,64 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Standings table mockup -->
+  <g transform="translate(300, 100)">
+    <rect width="600" height="320" rx="12" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+
+    <!-- Header -->
+    <rect width="600" height="50" rx="12" fill="#334155"/>
+    <text x="30" y="33" font-family="system-ui" font-size="14" font-weight="bold" fill="#94a3b8">TEAM</text>
+    <text x="350" y="33" font-family="system-ui" font-size="14" font-weight="bold" fill="#94a3b8">W</text>
+    <text x="410" y="33" font-family="system-ui" font-size="14" font-weight="bold" fill="#94a3b8">L</text>
+    <text x="470" y="33" font-family="system-ui" font-size="14" font-weight="bold" fill="#94a3b8">OTL</text>
+    <text x="540" y="33" font-family="system-ui" font-size="14" font-weight="bold" fill="#3b82f6">PTS</text>
+
+    <!-- Row 1 -->
+    <circle cx="50" cy="90" r="20" fill="#334155"/>
+    <text x="80" y="97" font-family="system-ui" font-size="20" font-weight="bold" fill="white">Panthers</text>
+    <text x="350" y="97" font-family="monospace" font-size="20" fill="#22c55e">32</text>
+    <text x="410" y="97" font-family="monospace" font-size="20" fill="#ef4444">12</text>
+    <text x="470" y="97" font-family="monospace" font-size="20" fill="white">4</text>
+    <text x="540" y="97" font-family="monospace" font-size="20" font-weight="bold" fill="#3b82f6">68</text>
+
+    <!-- Row 2 -->
+    <circle cx="50" cy="150" r="20" fill="#334155"/>
+    <text x="80" y="157" font-family="system-ui" font-size="20" font-weight="bold" fill="white">Capitals</text>
+    <text x="350" y="157" font-family="monospace" font-size="20" fill="#22c55e">30</text>
+    <text x="410" y="157" font-family="monospace" font-size="20" fill="#ef4444">13</text>
+    <text x="470" y="157" font-family="monospace" font-size="20" fill="white">5</text>
+    <text x="540" y="157" font-family="monospace" font-size="20" font-weight="bold" fill="#3b82f6">65</text>
+
+    <!-- Row 3 -->
+    <circle cx="50" cy="210" r="20" fill="#334155"/>
+    <text x="80" y="217" font-family="system-ui" font-size="20" font-weight="bold" fill="white">Jets</text>
+    <text x="350" y="217" font-family="monospace" font-size="20" fill="#22c55e">29</text>
+    <text x="410" y="217" font-family="monospace" font-size="20" fill="#ef4444">14</text>
+    <text x="470" y="217" font-family="monospace" font-size="20" fill="white">3</text>
+    <text x="540" y="217" font-family="monospace" font-size="20" font-weight="bold" fill="#3b82f6">61</text>
+
+    <!-- More rows indicator -->
+    <text x="300" y="290" font-family="system-ui" font-size="16" fill="#64748b" text-anchor="middle">+ 29 more teams</text>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="490" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="bold" fill="white" text-anchor="middle">NHL Standings</text>
+
+  <!-- Subtitle -->
+  <text x="600" y="550" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#94a3b8" text-anchor="middle">All 32 teams · Conference &amp; Division rankings</text>
+
+  <!-- Branding -->
+  <text x="600" y="600" font-family="system-ui" font-size="20" fill="#64748b" text-anchor="middle">YoganHockey</text>
+</svg>

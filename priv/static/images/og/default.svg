@@ -1,0 +1,35 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Ice rink pattern -->
+  <ellipse cx="600" cy="315" rx="500" ry="250" fill="none" stroke="#334155" stroke-width="2" opacity="0.3"/>
+  <line x1="600" y1="65" x2="600" y2="565" stroke="#334155" stroke-width="2" opacity="0.3"/>
+  <circle cx="600" cy="315" r="80" fill="none" stroke="#334155" stroke-width="2" opacity="0.3"/>
+
+  <!-- Hockey stick icon -->
+  <g transform="translate(500, 180)">
+    <path d="M100 0 L100 180 L180 220 L180 200 L120 170 L120 0 Z" fill="url(#accent)" opacity="0.8"/>
+    <ellipse cx="160" cy="210" rx="30" ry="15" fill="#1e293b" stroke="url(#accent)" stroke-width="3"/>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="420" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="bold" fill="white" text-anchor="middle">YoganHockey</text>
+
+  <!-- Subtitle -->
+  <text x="600" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#94a3b8" text-anchor="middle">Live NHL Stats &amp; Player Tracking</text>
+
+  <!-- Accent line -->
+  <rect x="450" y="510" width="300" height="4" rx="2" fill="url(#accent)"/>
+</svg>

@@ -1,0 +1,53 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="live" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444"/>
+      <stop offset="100%" style="stop-color:#f97316"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Live indicator pulse -->
+  <circle cx="200" cy="200" r="60" fill="#ef4444" opacity="0.2">
+    <animate attributeName="r" values="60;80;60" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.2;0.1;0.2" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="200" cy="200" r="20" fill="#ef4444"/>
+
+  <!-- Score display mockup -->
+  <g transform="translate(350, 150)">
+    <rect width="500" height="200" rx="12" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+
+    <!-- Team 1 -->
+    <circle cx="80" cy="70" r="35" fill="#334155"/>
+    <text x="140" y="80" font-family="system-ui" font-size="32" font-weight="bold" fill="white">BOS</text>
+    <text x="420" y="80" font-family="monospace" font-size="48" font-weight="bold" fill="white" text-anchor="end">3</text>
+
+    <!-- Divider -->
+    <line x1="40" y1="100" x2="460" y2="100" stroke="#334155" stroke-width="1"/>
+
+    <!-- Team 2 -->
+    <circle cx="80" cy="150" r="35" fill="#334155"/>
+    <text x="140" y="160" font-family="system-ui" font-size="32" font-weight="bold" fill="white">TOR</text>
+    <text x="420" y="160" font-family="monospace" font-size="48" font-weight="bold" fill="#3b82f6" text-anchor="end">4</text>
+
+    <!-- Period indicator -->
+    <rect x="180" y="10" width="140" height="30" rx="4" fill="url(#live)"/>
+    <text x="250" y="32" font-family="system-ui" font-size="16" font-weight="bold" fill="white" text-anchor="middle">2nd 12:34</text>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="450" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="bold" fill="white" text-anchor="middle">Live NHL Scores</text>
+
+  <!-- Subtitle -->
+  <text x="600" y="510" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#94a3b8" text-anchor="middle">Real-time game updates with AI predictions</text>
+
+  <!-- YoganHockey branding -->
+  <text x="600" y="580" font-family="system-ui" font-size="20" fill="#64748b" text-anchor="middle">YoganHockey</text>
+</svg>

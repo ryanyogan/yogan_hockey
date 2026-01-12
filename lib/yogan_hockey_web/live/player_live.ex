@@ -5,6 +5,7 @@ defmodule YoganHockeyWeb.PlayerLive do
   use YoganHockeyWeb, :live_view
 
   alias YoganHockey.NHL
+  alias YoganHockeyWeb.SEO
 
   import YoganHockeyWeb.HockeyComponents
   import YoganHockeyWeb.Helpers.StatsHelpers
@@ -16,9 +17,20 @@ defmodule YoganHockeyWeb.PlayerLive do
         # Check if player is injured
         injury = NHL.get_player_injury(player_id)
 
+        # Build description from player info
+        team_name = player[:team][:name] || "NHL"
+        position = player[:position] || "Player"
+        description = "#{player.name} stats, career history, and current season performance. #{position} for #{team_name}."
+
         {:ok,
          socket
-         |> assign(:page_title, player.name)
+         |> SEO.put_seo(
+           title: player.name,
+           description: description,
+           image: "/images/og/player.svg",
+           url: "/players/#{player_id}",
+           type: "profile"
+         )
          |> assign(:player, player)
          |> assign(:injury, injury)
          |> assign(:favorite_ids, [])
@@ -27,7 +39,11 @@ defmodule YoganHockeyWeb.PlayerLive do
       {:error, _reason} ->
         {:ok,
          socket
-         |> assign(:page_title, "Player Not Found")
+         |> SEO.put_seo(
+           title: "Player Not Found",
+           description: "The requested player could not be found.",
+           url: "/players/#{player_id}"
+         )
          |> assign(:player, nil)
          |> assign(:injury, nil)
          |> assign(:favorite_ids, [])
