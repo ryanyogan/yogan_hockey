@@ -47,6 +47,24 @@ defmodule YoganHockeyWeb.CoreComponents do
 
   slot :inner_block, doc: "the optional inner block that renders the flash message"
 
+  def flash(%{id: "client-error"} = assigns) do
+    ~H"""
+    <div
+      id={@id}
+      role="alert"
+      class="fixed top-2 right-2 z-50 mt-1 mr-2 w-fit rounded-md bg-slate-300 p-3 text-slate-900 shadow-md"
+      {@rest}
+    >
+      <p class="flex items-center gap-1.5 text-sm leading-6">
+        <span class="font-semibold">
+          <.icon name="hero-arrow-path" class="mr-2 h-5 w-5 animate-spin" />
+          {gettext("Connecting...")}
+        </span>
+      </p>
+    </div>
+    """
+  end
+
   def flash(assigns) do
     assigns = assign_new(assigns, :id, fn -> "flash-#{assigns.kind}" end)
 

@@ -11,7 +11,8 @@ defmodule YoganHockey.DEL2.YoganStatsServer do
 
   alias YoganHockey.DEL2
 
-  @poll_interval :timer.minutes(5)
+  # Poll once per day - stats don't change frequently
+  @poll_interval :timer.hours(24)
 
   # --- Client API ---
 
@@ -30,7 +31,7 @@ defmodule YoganHockey.DEL2.YoganStatsServer do
 
   @impl true
   def init(_opts) do
-    Logger.info("Starting YoganStatsServer with #{div(@poll_interval, 1000)}s interval")
+    Logger.info("Starting YoganStatsServer with #{div(@poll_interval, 3_600_000)}h interval")
 
     # Initial fetch
     send(self(), :poll)
@@ -64,43 +65,57 @@ defmodule YoganHockey.DEL2.YoganStatsServer do
   # --- Private ---
 
   defp do_poll(state) do
-    # Fetch player stats
-    stats_result = DEL2.refresh_yogan_stats()
+    # Run both fetches in parallel for ~50% speedup
+    stats_task =
+      Task.Supervisor.async_nolink(YoganHockey.TaskSupervisor, fn ->
+        DEL2.refresh_yogan_stats()
+      end)
 
-    # Also fetch team schedule
-    schedule_result = DEL2.refresh_team_schedule()
+    schedule_task =
+      Task.Supervisor.async_nolink(YoganHockey.TaskSupervisor, fn ->
+        DEL2.refresh_team_schedule()
+      end)
 
-    case stats_result do
-      {:ok, stats} ->
-        Logger.debug("Fetched Yogan stats: #{stats.player.name}")
+    # Wait for both to complete
+    stats_result = Task.await(stats_task, 30_000)
+    schedule_result = Task.await(schedule_task, 30_000)
 
-        # Broadcast stats update
+    # Process stats result
+    new_state =
+      case stats_result do
+        {:ok, stats} ->
+          Logger.debug("Fetched Yogan stats: #{stats.player.name}")
+
+          Phoenix.PubSub.broadcast(
+            YoganHockey.PubSub,
+            "yogan:stats",
+            {:yogan_stats_updated, stats}
+          )
+
+          %{state | last_poll: DateTime.utc_now(), consecutive_failures: 0}
+
+        {:error, reason} ->
+          Logger.warning("Failed to fetch Yogan stats: #{inspect(reason)}")
+          %{state | consecutive_failures: state.consecutive_failures + 1}
+      end
+
+    # Process schedule result (independent of stats success)
+    case schedule_result do
+      {:ok, schedule} ->
+        Logger.debug(
+          "Fetched team schedule: #{length(schedule.past_games)} past, #{length(schedule.upcoming_games)} upcoming"
+        )
+
         Phoenix.PubSub.broadcast(
           YoganHockey.PubSub,
           "yogan:stats",
-          {:yogan_stats_updated, stats}
+          {:team_schedule_updated, schedule}
         )
 
-        # Broadcast schedule update if successful
-        case schedule_result do
-          {:ok, schedule} ->
-            Logger.debug("Fetched team schedule: #{length(schedule.past_games)} past, #{length(schedule.upcoming_games)} upcoming")
-
-            Phoenix.PubSub.broadcast(
-              YoganHockey.PubSub,
-              "yogan:stats",
-              {:team_schedule_updated, schedule}
-            )
-
-          {:error, reason} ->
-            Logger.warning("Failed to fetch team schedule: #{inspect(reason)}")
-        end
-
-        %{state | last_poll: DateTime.utc_now(), consecutive_failures: 0}
-
       {:error, reason} ->
-        Logger.warning("Failed to fetch Yogan stats: #{inspect(reason)}")
-        %{state | consecutive_failures: state.consecutive_failures + 1}
+        Logger.warning("Failed to fetch team schedule: #{inspect(reason)}")
     end
+
+    new_state
   end
 end

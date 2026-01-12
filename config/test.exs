@@ -1,5 +1,8 @@
 import Config
 
+# Disable GenServers in tests (they can be started manually when needed)
+config :yogan_hockey, start_genservers: false
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :yogan_hockey, YoganHockeyWeb.Endpoint,

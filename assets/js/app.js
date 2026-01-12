@@ -18,99 +18,93 @@
 // To load it, simply add a second `<link>` to your `root.html.heex` file.
 
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
-import "phoenix_html"
+import "phoenix_html";
 // Establish Phoenix Socket and LiveView configuration.
-import {Socket} from "phoenix"
-import {LiveSocket} from "phoenix_live_view"
-import topbar from "../vendor/topbar"
+import { Socket } from "phoenix";
+import { LiveSocket } from "phoenix_live_view";
+import topbar from "../vendor/topbar";
 
 // Hooks
-const Hooks = {}
+const Hooks = {};
 
 // FavoritePlayers hook - manages localStorage for favorite player IDs
 Hooks.FavoritePlayers = {
   mounted() {
     // Send favorites to LiveView on mount
-    const favorites = JSON.parse(localStorage.getItem("favorite_players") || "[]")
-    this.pushEvent("favorites_loaded", { player_ids: favorites })
+    const favorites = JSON.parse(
+      localStorage.getItem("favorite_players") || "[]",
+    );
+    this.pushEvent("favorites_loaded", { player_ids: favorites });
 
     // Listen for toggle events from LiveView
     this.handleEvent("toggle_favorite", ({ player_id }) => {
-      let favorites = JSON.parse(localStorage.getItem("favorite_players") || "[]")
+      let favorites = JSON.parse(
+        localStorage.getItem("favorite_players") || "[]",
+      );
 
       if (favorites.includes(player_id)) {
-        favorites = favorites.filter(id => id !== player_id)
+        favorites = favorites.filter((id) => id !== player_id);
       } else {
-        favorites.push(player_id)
+        favorites.push(player_id);
       }
 
-      localStorage.setItem("favorite_players", JSON.stringify(favorites))
-      this.pushEvent("favorites_updated", { player_ids: favorites })
-    })
+      localStorage.setItem("favorite_players", JSON.stringify(favorites));
+      this.pushEvent("favorites_updated", { player_ids: favorites });
+    });
 
     this.handleEvent("update_favorites", ({ player_ids }) => {
-      localStorage.setItem("favorite_players", JSON.stringify(player_ids))
-    })
-  }
-}
+      localStorage.setItem("favorite_players", JSON.stringify(player_ids));
+    });
+  },
+};
 
-// PlayerSearch hook - debounced search input
-Hooks.PlayerSearch = {
-  mounted() {
-    let timeout = null
-    const input = this.el.querySelector("input")
-
-    if (input) {
-      input.addEventListener("input", (e) => {
-        clearTimeout(timeout)
-        timeout = setTimeout(() => {
-          this.pushEvent("search", { query: e.target.value })
-        }, 300)
-      })
-    }
-  }
-}
+// PlayerSearch hook removed - using phx-debounce on input instead
 
 // MobileMenu hook - closes menu on LiveView navigation
 Hooks.MobileMenu = {
   mounted() {
-    this.checkbox = document.getElementById("mobile-menu")
+    this.checkbox = document.getElementById("mobile-menu");
 
     // Close menu when LiveView navigation starts
     this.navigationHandler = () => {
       if (this.checkbox) {
-        this.checkbox.checked = false
+        this.checkbox.checked = false;
       }
-    }
+    };
 
-    window.addEventListener("phx:page-loading-start", this.navigationHandler)
+    window.addEventListener("phx:page-loading-start", this.navigationHandler);
   },
 
   destroyed() {
-    window.removeEventListener("phx:page-loading-start", this.navigationHandler)
-  }
-}
+    window.removeEventListener(
+      "phx:page-loading-start",
+      this.navigationHandler,
+    );
+  },
+};
 
-const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+const csrfToken = document
+  .querySelector("meta[name='csrf-token']")
+  .getAttribute("content");
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken},
+  params: { _csrf_token: csrfToken },
   hooks: Hooks,
-})
+});
 
 // Show progress bar on live navigation and form submits
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
-window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
-window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
+topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" });
+window.addEventListener("phx:page-loading-start", (_info) => topbar.show(300));
+window.addEventListener("phx:page-loading-stop", (_info) => topbar.hide());
 
 // connect if there are any LiveViews on the page
-liveSocket.connect()
+liveSocket.connect();
 
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
 // >> liveSocket.disableLatencySim()
-window.liveSocket = liveSocket
+window.liveSocket = liveSocket;
 
 // The lines below enable quality of life phoenix_live_reload
 // development features:
@@ -119,31 +113,37 @@ window.liveSocket = liveSocket
 //     2. click on elements to jump to their definitions in your code editor
 //
 if (process.env.NODE_ENV === "development") {
-  window.addEventListener("phx:live_reload:attached", ({detail: reloader}) => {
-    // Enable server log streaming to client.
-    // Disable with reloader.disableServerLogs()
-    reloader.enableServerLogs()
+  window.addEventListener(
+    "phx:live_reload:attached",
+    ({ detail: reloader }) => {
+      // Enable server log streaming to client.
+      // Disable with reloader.disableServerLogs()
+      reloader.enableServerLogs();
 
-    // Open configured PLUG_EDITOR at file:line of the clicked element's HEEx component
-    //
-    //   * click with "c" key pressed to open at caller location
-    //   * click with "d" key pressed to open at function component definition location
-    let keyDown
-    window.addEventListener("keydown", e => keyDown = e.key)
-    window.addEventListener("keyup", e => keyDown = null)
-    window.addEventListener("click", e => {
-      if(keyDown === "c"){
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        reloader.openEditorAtCaller(e.target)
-      } else if(keyDown === "d"){
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        reloader.openEditorAtDef(e.target)
-      }
-    }, true)
+      // Open configured PLUG_EDITOR at file:line of the clicked element's HEEx component
+      //
+      //   * click with "c" key pressed to open at caller location
+      //   * click with "d" key pressed to open at function component definition location
+      let keyDown;
+      window.addEventListener("keydown", (e) => (keyDown = e.key));
+      window.addEventListener("keyup", (e) => (keyDown = null));
+      window.addEventListener(
+        "click",
+        (e) => {
+          if (keyDown === "c") {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            reloader.openEditorAtCaller(e.target);
+          } else if (keyDown === "d") {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            reloader.openEditorAtDef(e.target);
+          }
+        },
+        true,
+      );
 
-    window.liveReloader = reloader
-  })
+      window.liveReloader = reloader;
+    },
+  );
 }
-

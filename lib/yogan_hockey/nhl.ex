@@ -7,6 +7,8 @@ defmodule YoganHockey.NHL do
   cached in ETS for fast access.
   """
 
+  require Logger
+
   alias YoganHockey.Cache
   alias YoganHockey.EasterEggs
   alias YoganHockey.NHL.APIClient
@@ -87,9 +89,11 @@ defmodule YoganHockey.NHL do
 
     result = case Cache.get(:nhl_team_stats, cache_key) do
       nil ->
+        Logger.debug("[NHL] Cache MISS for team_details #{team_id} - fetching from API")
         fetch_and_cache_team_details(team_id, cache_key)
 
       cached ->
+        Logger.debug("[NHL] Cache HIT for team_details #{team_id}")
         {:ok, cached}
     end
 
@@ -172,6 +176,7 @@ defmodule YoganHockey.NHL do
 
     case Cache.get(:nhl_team_stats, cache_key) do
       nil ->
+        Logger.debug("[NHL] Cache MISS for team_schedule #{team_id} - fetching from API")
         case APIClient.get_team_schedule(team_id) do
           {:ok, data} ->
             schedule = Parsers.parse_team_schedule(data)
@@ -183,6 +188,7 @@ defmodule YoganHockey.NHL do
         end
 
       cached ->
+        Logger.debug("[NHL] Cache HIT for team_schedule #{team_id}")
         {:ok, cached}
     end
   end

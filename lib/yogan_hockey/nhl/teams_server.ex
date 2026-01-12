@@ -81,8 +81,8 @@ defmodule YoganHockey.NHL.TeamsServer do
 
   @impl true
   def handle_cast({:refresh_team_details, team_ids}, state) do
-    # Refresh team details in background for playing teams
-    Task.start(fn ->
+    # Refresh team details in background using supervised task
+    Task.Supervisor.start_child(YoganHockey.TaskSupervisor, fn ->
       Enum.each(team_ids, fn team_id ->
         refresh_single_team_detail(team_id)
       end)
@@ -141,10 +141,12 @@ defmodule YoganHockey.NHL.TeamsServer do
       |> Enum.map(& &1.id)
       |> Enum.chunk_every(4)
       |> Enum.each(fn chunk ->
-        # Fetch in parallel batches of 4
+        # Fetch in parallel batches of 4 using supervised tasks
         tasks =
           Enum.map(chunk, fn team_id ->
-            Task.async(fn -> refresh_single_team_detail(team_id) end)
+            Task.Supervisor.async_nolink(YoganHockey.TaskSupervisor, fn ->
+              refresh_single_team_detail(team_id)
+            end)
           end)
 
         Task.await_many(tasks, 30_000)
@@ -158,14 +160,38 @@ defmodule YoganHockey.NHL.TeamsServer do
   end
 
   defp refresh_single_team_detail(team_id) do
-    case NHL.get_team_details(team_id) do
+    # Run both API calls in parallel for ~50% speedup
+    details_task =
+      Task.Supervisor.async_nolink(YoganHockey.TaskSupervisor, fn ->
+        NHL.get_team_details(team_id)
+      end)
+
+    schedule_task =
+      Task.Supervisor.async_nolink(YoganHockey.TaskSupervisor, fn ->
+        NHL.get_team_schedule(team_id)
+      end)
+
+    # Wait for both to complete
+    details_result = Task.await(details_task, 15_000)
+    schedule_result = Task.await(schedule_task, 15_000)
+
+    # Log results
+    case details_result do
       {:ok, _team} ->
         Logger.debug("Pre-populated team details for team #{team_id}")
-        :ok
 
       {:error, reason} ->
         Logger.warning("Failed to pre-populate team #{team_id}: #{inspect(reason)}")
-        :error
     end
+
+    case schedule_result do
+      {:ok, _schedule} ->
+        Logger.debug("Pre-populated schedule for team #{team_id}")
+
+      {:error, reason} ->
+        Logger.warning("Failed to pre-populate schedule for team #{team_id}: #{inspect(reason)}")
+    end
+
+    :ok
   end
 end

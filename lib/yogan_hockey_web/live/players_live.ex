@@ -56,33 +56,48 @@ defmodule YoganHockeyWeb.PlayersLive do
   end
 
   @impl true
-  def handle_event("search", %{"query" => query}, socket) when byte_size(query) >= 2 do
-    socket = assign(socket, :search_loading, true)
-
-    case NHL.search_players(query) do
-      {:ok, results} ->
-        {:noreply,
-         socket
-         |> assign(:search_query, query)
-         |> assign(:search_results, results)
-         |> assign(:search_loading, false)}
-
-      {:error, _} ->
-        {:noreply,
-         socket
-         |> assign(:search_query, query)
-         |> assign(:search_results, [])
-         |> assign(:search_loading, false)}
-    end
+  def handle_event("search", %{"query" => query}, socket) when is_binary(query) and byte_size(query) >= 2 do
+    # Use start_async for non-blocking search
+    {:noreply,
+     socket
+     |> assign(:search_query, query)
+     |> assign(:search_loading, true)
+     |> cancel_async(:search_results)
+     |> start_async(:search_results, fn -> NHL.search_players(query) end)}
   end
 
   @impl true
-  def handle_event("search", %{"query" => _query}, socket) do
+  def handle_event("search", params, socket) do
+    # Handle empty query or short queries - extract query from params
+    query = params["query"] || ""
+
     {:noreply,
      socket
-     |> assign(:search_query, "")
+     |> cancel_async(:search_results)
+     |> assign(:search_query, query)
      |> assign(:search_results, [])
      |> assign(:search_loading, false)}
+  end
+
+  @impl true
+  def handle_async(:search_results, {:ok, {:ok, results}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:search_results, results)
+     |> assign(:search_loading, false)}
+  end
+
+  @impl true
+  def handle_async(:search_results, {:ok, {:error, _reason}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:search_results, [])
+     |> assign(:search_loading, false)}
+  end
+
+  @impl true
+  def handle_async(:search_results, {:exit, _reason}, socket) do
+    {:noreply, assign(socket, :search_loading, false)}
   end
 
   @impl true
