@@ -17,7 +17,13 @@ defmodule YoganHockey.Application do
         {Phoenix.PubSub, name: YoganHockey.PubSub},
 
         # Task supervisor for background tasks
-        {Task.Supervisor, name: YoganHockey.TaskSupervisor}
+        {Task.Supervisor, name: YoganHockey.TaskSupervisor},
+
+        # Registry for per-game servers
+        {Registry, keys: :unique, name: YoganHockey.GamePlayRegistry},
+
+        # Dynamic supervisor for game play servers
+        YoganHockey.GamePlay.GamePlaySupervisor
       ] ++
         genserver_children() ++
         [

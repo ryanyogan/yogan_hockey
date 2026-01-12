@@ -651,6 +651,181 @@ defmodule YoganHockey.NHL.Parsers do
   end
   defp format_injury_date(date), do: date
 
+  # --- Game Summary Parsing (Live Game Play) ---
+
+  @doc """
+  Parses ESPN game summary response into GamePlayData structure.
+  Returns comprehensive game data including boxscore and play-by-play.
+  """
+  @spec parse_game_summary(map()) :: map()
+  def parse_game_summary(%{"boxscore" => boxscore} = data) do
+    header = data["header"] || %{}
+    competitions = header["competitions"] || []
+    competition = List.first(competitions) || %{}
+    plays = data["plays"] || []
+
+    # Parse teams from boxscore
+    teams = boxscore["teams"] || []
+    {home_team, away_team} = parse_boxscore_teams(teams)
+
+    %{
+      game_id: header["id"] || data["id"],
+      status: parse_game_summary_status(competition["status"]),
+      home_team: home_team,
+      away_team: away_team,
+      plays: parse_game_plays(plays, home_team, away_team),
+      boxscore: parse_period_scores(competition),
+      last_updated: DateTime.utc_now()
+    }
+  end
+
+  def parse_game_summary(_), do: nil
+
+  defp parse_game_summary_status(%{"type" => type} = status) do
+    %{
+      state: type["state"] || "pre",
+      period: status["period"] || 0,
+      clock: status["displayClock"] || "0:00",
+      intermission: type["name"] == "STATUS_INTERMISSION",
+      detail: type["shortDetail"] || type["detail"]
+    }
+  end
+
+  defp parse_game_summary_status(_) do
+    %{state: "pre", period: 0, clock: "0:00", intermission: false, detail: nil}
+  end
+
+  defp parse_boxscore_teams(teams) when is_list(teams) do
+    home = Enum.find(teams, fn t -> t["homeAway"] == "home" end) || %{}
+    away = Enum.find(teams, fn t -> t["homeAway"] == "away" end) || %{}
+
+    {parse_boxscore_team(home), parse_boxscore_team(away)}
+  end
+
+  defp parse_boxscore_teams(_), do: {%{}, %{}}
+
+  defp parse_boxscore_team(team) do
+    team_info = team["team"] || %{}
+    stats = team["statistics"] || []
+
+    %{
+      id: to_string(team_info["id"] || ""),
+      name: team_info["displayName"] || team_info["name"] || "",
+      abbreviation: team_info["abbreviation"] || "",
+      logo: team_info["logo"] || get_logo_href(team_info["logos"]),
+      color: team_info["color"] || "333333",
+      score: parse_stat_value(team["score"]) || 0,
+      shots: get_team_stat(stats, "blockedShots") || 0,
+      hits: get_team_stat(stats, "hits") || 0,
+      faceoff_pct: get_team_stat(stats, "faceOffWinPercentage"),
+      takeaways: get_team_stat(stats, "takeaways") || 0,
+      giveaways: get_team_stat(stats, "giveaways") || 0,
+      power_play: get_power_play_stat(stats)
+    }
+  end
+
+  defp get_team_stat(stats, name) when is_list(stats) do
+    case Enum.find(stats, fn s -> s["name"] == name end) do
+      %{"displayValue" => v} when is_binary(v) ->
+        case Float.parse(v) do
+          {f, _} -> f
+          :error -> nil
+        end
+      %{"value" => v} when is_number(v) -> v
+      _ -> nil
+    end
+  end
+
+  defp get_team_stat(_, _), do: nil
+
+  defp get_power_play_stat(stats) when is_list(stats) do
+    case Enum.find(stats, fn s -> s["name"] == "powerPlayPct" end) do
+      %{"displayValue" => v} -> v
+      _ -> nil
+    end
+  end
+
+  defp get_power_play_stat(_), do: nil
+
+  defp parse_period_scores(competition) do
+    linescores = competition["linescores"] || []
+
+    period_scores =
+      linescores
+      |> Enum.with_index(1)
+      |> Enum.map(fn {scores, period} ->
+        %{
+          period: period,
+          home: scores["home"] || 0,
+          away: scores["away"] || 0
+        }
+      end)
+
+    %{period_scores: period_scores}
+  end
+
+  defp parse_game_plays(plays, home_team, away_team) when is_list(plays) do
+    plays
+    |> Enum.filter(&significant_play?/1)
+    |> Enum.map(fn play -> parse_single_play(play, home_team, away_team) end)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.take(100)
+  end
+
+  defp parse_game_plays(_, _, _), do: []
+
+  # Filter for significant plays: goals, shots on goal, penalties, hits
+  defp significant_play?(%{"type" => %{"id" => type_id}}) do
+    # 505 = Goal, 506 = Shot on Goal, 509 = Penalty, 503 = Hit, 502 = Faceoff
+    type_id in ["505", "506", "509", "503", "502"]
+  end
+
+  defp significant_play?(_), do: false
+
+  defp parse_single_play(play, home_team, away_team) do
+    type = play["type"] || %{}
+    period = play["period"] || %{}
+    clock = play["clock"] || %{}
+    coordinate = play["coordinate"] || %{}
+    team = play["team"] || %{}
+
+    team_id = to_string(team["id"] || "")
+
+    # Determine team color based on which team made the play
+    team_color =
+      cond do
+        team_id == home_team.id -> home_team.color
+        team_id == away_team.id -> away_team.color
+        true -> "666666"
+      end
+
+    %{
+      id: play["id"] || to_string(:erlang.unique_integer([:positive])),
+      type: play_type_from_id(type["id"]),
+      period: period["number"] || 1,
+      time: clock["displayValue"] || "0:00",
+      team_id: team_id,
+      team_color: team_color,
+      description: play["text"] || type["text"] || "",
+      x: normalize_coordinate(coordinate["x"], 100),
+      y: normalize_coordinate(coordinate["y"], 42.5),
+      scoring: play["scoringPlay"] == true
+    }
+  end
+
+  defp play_type_from_id("505"), do: :goal
+  defp play_type_from_id("506"), do: :shot
+  defp play_type_from_id("509"), do: :penalty
+  defp play_type_from_id("503"), do: :hit
+  defp play_type_from_id("502"), do: :faceoff
+  defp play_type_from_id(_), do: :other
+
+  # Normalize coordinates to 0-200 x 0-85 NHL rink system
+  # ESPN coordinates are relative to center ice
+  defp normalize_coordinate(nil, default), do: default
+  defp normalize_coordinate(coord, offset) when is_number(coord), do: offset + coord
+  defp normalize_coordinate(_, default), do: default
+
   # --- Shared Helpers ---
 
   defp parse_stat_value(value) when is_float(value), do: round(value)

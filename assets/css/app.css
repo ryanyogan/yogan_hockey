@@ -2042,3 +2042,214 @@ body {
     @apply text-[10px];
   }
 }
+
+/* ============================================
+   GAME PLAY PAGE - ICE RINK VISUALIZATION
+   Mobile-First for iPhone 16/17
+   ============================================ */
+
+/* Ice Rink Container */
+.ice-rink-container {
+  @apply bg-base-300 rounded-lg overflow-hidden;
+  background: linear-gradient(
+    180deg,
+    oklch(92% 0.01 250) 0%,
+    oklch(95% 0.008 250) 50%,
+    oklch(92% 0.01 250) 100%
+  );
+}
+
+[data-theme="dark"] .ice-rink-container {
+  background: linear-gradient(
+    180deg,
+    oklch(25% 0.02 250) 0%,
+    oklch(30% 0.015 250) 50%,
+    oklch(25% 0.02 250) 100%
+  );
+}
+
+.ice-rink-container svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+/* Play Markers Animation */
+.play-marker {
+  transition: r 0.2s ease, fill-opacity 0.2s ease;
+}
+
+.play-marker:hover {
+  r: 5;
+  fill-opacity: 1;
+  cursor: pointer;
+}
+
+/* Game Header Styles */
+.game-header {
+  @apply relative overflow-hidden;
+}
+
+.game-header::before {
+  content: "";
+  @apply absolute inset-0;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    var(--color-primary) 0%,
+    transparent 70%
+  );
+  opacity: 0.05;
+}
+
+/* Live Status Badge */
+.live-indicator {
+  @apply inline-flex items-center gap-1.5;
+}
+
+.live-indicator::before {
+  content: "";
+  @apply w-2 h-2 bg-error rounded-full;
+  animation: live-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+/* Filter Buttons - Touch Friendly */
+.game-play-filter {
+  @apply px-3 py-2 text-xs font-medium transition-colors;
+  @apply bg-base-200 text-base-content/70 hover:bg-base-300;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.game-play-filter.active {
+  @apply bg-primary text-primary-content;
+}
+
+/* Play-by-Play Stream */
+.play-stream {
+  @apply max-h-96 overflow-y-auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.play-stream::-webkit-scrollbar {
+  width: 4px;
+}
+
+.play-stream::-webkit-scrollbar-track {
+  @apply bg-base-300;
+}
+
+.play-stream::-webkit-scrollbar-thumb {
+  @apply bg-base-content/20 rounded;
+}
+
+/* Play Item Styles */
+.play-item-goal {
+  @apply bg-success/10 border-l-2 border-success;
+}
+
+.play-item-penalty {
+  @apply bg-warning/10 border-l-2 border-warning;
+}
+
+.play-item-hit {
+  @apply bg-error/10;
+}
+
+/* Period Scoring Table */
+.period-scoring-table {
+  @apply w-full text-xs;
+}
+
+.period-scoring-table th {
+  @apply py-2 px-3 text-center font-medium uppercase tracking-wider text-base-content/50;
+}
+
+.period-scoring-table td {
+  @apply py-2 px-3 text-center font-mono;
+}
+
+.period-scoring-table tbody tr:hover {
+  @apply bg-base-300/30;
+}
+
+/* Team Stats Bar */
+.team-stat-bar {
+  @apply flex h-2 bg-base-300 overflow-hidden;
+}
+
+.team-stat-fill {
+  @apply h-full transition-all duration-500 ease-out;
+}
+
+.team-stat-fill.home {
+  @apply bg-primary;
+}
+
+.team-stat-fill.away {
+  @apply bg-accent;
+}
+
+/* Mobile Optimizations for Game Play */
+@media (max-width: 640px) {
+  .game-header .text-5xl {
+    @apply text-3xl;
+  }
+
+  .ice-rink-container {
+    /* Full width on mobile with slight padding */
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    border-radius: 0;
+  }
+
+  /* Ensure touch targets are 44px minimum */
+  .game-play-filter,
+  .play-stream button,
+  .play-stream a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Safe Area for iPhone */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .game-play-container {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Game Card Link Styles */
+.game-card-link {
+  @apply block transition-transform;
+}
+
+.game-card-link:hover {
+  @apply scale-[1.02];
+}
+
+.game-card-link:active {
+  @apply scale-[0.98];
+}
+
+/* Scoreboard Clock */
+.scoreboard-clock {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+.scoreboard-clock span {
+  text-shadow: 0 0 10px currentColor;
+}
+
+[data-theme="dark"] .scoreboard-clock span {
+  text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+}

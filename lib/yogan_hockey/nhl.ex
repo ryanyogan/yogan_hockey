@@ -29,6 +29,17 @@ defmodule YoganHockey.NHL do
   end
 
   @doc """
+  Gets a specific game by ID from the live scores cache.
+  """
+  @spec get_game(String.t()) :: map() | nil
+  def get_game(game_id) do
+    game_id = to_string(game_id)
+
+    list_live_scores()
+    |> Enum.find(&(to_string(&1.id) == game_id))
+  end
+
+  @doc """
   Fetches and caches the latest scoreboard data.
   Returns the list of games.
   """

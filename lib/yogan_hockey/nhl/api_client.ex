@@ -114,4 +114,13 @@ defmodule YoganHockey.NHL.APIClient do
   def get_injuries do
     http_adapter().get_json("#{@base_url}/injuries")
   end
+
+  @doc """
+  Fetches detailed game summary including boxscore and play-by-play.
+  This endpoint provides real-time game data for live games.
+  """
+  @spec get_game_summary(String.t()) :: {:ok, map()} | {:error, term()}
+  def get_game_summary(event_id) do
+    http_adapter().get_json("https://site.web.api.espn.com/apis/site/v2/sports/hockey/nhl/summary?event=#{event_id}")
+  end
 end

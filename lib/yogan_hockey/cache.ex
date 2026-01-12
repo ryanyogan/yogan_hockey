@@ -17,7 +17,8 @@ defmodule YoganHockey.Cache do
     :del2_team,
     :playoffs,
     :playoffs_predictions,
-    :live_game_predictions
+    :live_game_predictions,
+    :game_play_data
   ]
 
   @doc """

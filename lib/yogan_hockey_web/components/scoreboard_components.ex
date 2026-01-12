@@ -34,7 +34,7 @@ defmodule YoganHockeyWeb.ScoreboardComponents do
 
   defp ticker_game(assigns) do
     ~H"""
-    <.link navigate={~p"/nhl/live"} class={ticker_game_class(@game)}>
+    <.link navigate={~p"/nhl/games/#{@game.id}"} class={ticker_game_class(@game)}>
       <div class="ticker-team">
         <div class="ticker-team-info">
           <img :if={@game.away_team.logo} src={@game.away_team.logo} class="ticker-logo" />
@@ -106,80 +106,82 @@ defmodule YoganHockeyWeb.ScoreboardComponents do
       |> assign(:total_injuries, game_injury_count(assigns[:game], assigns[:injuries]))
 
     ~H"""
-    <div class={[game_card_class(@game), @class]}>
-      <div class="game-card-header">
-        <span :if={@game.status.state == "in"} class="live-indicator">Live</span>
-        <span :if={@game.status.completed} class="text-base-content/50">Final</span>
-        <span :if={@game.status.state == "pre"} class="text-base-content/50">{@game.status.detail}</span>
-        <span :if={@game.broadcasts != []} class="text-base-content/40 truncate max-w-[100px]">
-          {Enum.join(@game.broadcasts, ", ")}
-        </span>
-      </div>
-      <div class="game-card-body">
-        <%!-- Away Team --%>
-        <div class="game-team-row">
-          <div class="game-team-info">
-            <img :if={@game.away_team.logo} src={@game.away_team.logo} class="game-team-logo" />
-            <span class={[
-              "game-team-name",
-              highlight_team?(@game, @prediction, @game.away_team.abbreviation) && "text-info"
-            ]}>
-              {@game.away_team.abbreviation}
-            </span>
-            <span :if={@game.away_team.records} class="game-team-record">
-              {get_record(@game.away_team.records)}
-            </span>
-          </div>
-          <span class={["game-score", @game.away_team.winner && "winner"]}>
-            {@game.away_team.score || "-"}
+    <.link navigate={~p"/nhl/games/#{@game.id}"} class="game-card-link">
+      <div class={[game_card_class(@game), @class]}>
+        <div class="game-card-header">
+          <span :if={@game.status.state == "in"} class="live-indicator">Live</span>
+          <span :if={@game.status.completed} class="text-base-content/50">Final</span>
+          <span :if={@game.status.state == "pre"} class="text-base-content/50">{@game.status.detail}</span>
+          <span :if={@game.broadcasts != []} class="text-base-content/40 truncate max-w-[100px]">
+            {Enum.join(@game.broadcasts, ", ")}
           </span>
         </div>
+        <div class="game-card-body">
+          <%!-- Away Team --%>
+          <div class="game-team-row">
+            <div class="game-team-info">
+              <img :if={@game.away_team.logo} src={@game.away_team.logo} class="game-team-logo" />
+              <span class={[
+                "game-team-name",
+                highlight_team?(@game, @prediction, @game.away_team.abbreviation) && "text-info"
+              ]}>
+                {@game.away_team.abbreviation}
+              </span>
+              <span :if={@game.away_team.records} class="game-team-record">
+                {get_record(@game.away_team.records)}
+              </span>
+            </div>
+            <span class={["game-score", @game.away_team.winner && "winner"]}>
+              {@game.away_team.score || "-"}
+            </span>
+          </div>
 
-        <%!-- Prediction Progress Bar (only for non-completed games with predictions) --%>
-        <div :if={@prediction && !@game.status.completed} class="relative flex items-center my-1.5 px-1">
-          <div class="h-[1px] w-full flex">
-            <div class="bg-info" style={"width: #{prediction_bar_percent(@prediction)}%"}></div>
-            <div class="bg-base-200" style={"width: #{100 - prediction_bar_percent(@prediction)}%"}></div>
+          <%!-- Prediction Progress Bar (only for non-completed games with predictions) --%>
+          <div :if={@prediction && !@game.status.completed} class="relative flex items-center my-1.5 px-1">
+            <div class="h-[1px] w-full flex">
+              <div class="bg-info" style={"width: #{prediction_bar_percent(@prediction)}%"}></div>
+              <div class="bg-base-200" style={"width: #{100 - prediction_bar_percent(@prediction)}%"}></div>
+            </div>
+            <span
+              class="absolute -translate-x-1/2 text-[9px] text-base-content/50 font-mono bg-base-100 px-1"
+              style={"left: calc(#{prediction_bar_percent(@prediction)}% + 0.25rem)"}
+            >
+              {@prediction.predicted_winner} {format_probability(@prediction.winner_probability)}
+            </span>
           </div>
-          <span
-            class="absolute -translate-x-1/2 text-[9px] text-base-content/50 font-mono bg-base-100 px-1"
-            style={"left: calc(#{prediction_bar_percent(@prediction)}% + 0.25rem)"}
-          >
-            {@prediction.predicted_winner} {format_probability(@prediction.winner_probability)}
-          </span>
-        </div>
 
-        <%!-- Home Team --%>
-        <div class="game-team-row">
-          <div class="game-team-info">
-            <img :if={@game.home_team.logo} src={@game.home_team.logo} class="game-team-logo" />
-            <span class={[
-              "game-team-name",
-              highlight_team?(@game, @prediction, @game.home_team.abbreviation) && "text-info"
-            ]}>
-              {@game.home_team.abbreviation}
-            </span>
-            <span :if={@game.home_team.records} class="game-team-record">
-              {get_record(@game.home_team.records)}
+          <%!-- Home Team --%>
+          <div class="game-team-row">
+            <div class="game-team-info">
+              <img :if={@game.home_team.logo} src={@game.home_team.logo} class="game-team-logo" />
+              <span class={[
+                "game-team-name",
+                highlight_team?(@game, @prediction, @game.home_team.abbreviation) && "text-info"
+              ]}>
+                {@game.home_team.abbreviation}
+              </span>
+              <span :if={@game.home_team.records} class="game-team-record">
+                {get_record(@game.home_team.records)}
+              </span>
+            </div>
+            <span class={["game-score", @game.home_team.winner && "winner"]}>
+              {@game.home_team.score || "-"}
             </span>
           </div>
-          <span class={["game-score", @game.home_team.winner && "winner"]}>
-            {@game.home_team.score || "-"}
-          </span>
+        </div>
+        <div class="game-status flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span :if={@game.status.state == "in"} class="font-mono text-error">
+              {period_display(@game.status.period)} {@game.status.display_clock || ""}
+            </span>
+            <span :if={@total_injuries > 0} class="text-[10px] text-error">
+              Injured ({@total_injuries})
+            </span>
+          </div>
+          <span :if={@game.venue} class="text-base-content/50 truncate">{@game.venue.name}</span>
         </div>
       </div>
-      <div class="game-status flex justify-between items-center">
-        <div class="flex items-center gap-2">
-          <span :if={@game.status.state == "in"} class="font-mono text-error">
-            {period_display(@game.status.period)} {@game.status.display_clock || ""}
-          </span>
-          <.link :if={@total_injuries > 0} navigate={~p"/players#injuries"} class="text-[10px] text-error hover:underline">
-            Injured ({@total_injuries})
-          </.link>
-        </div>
-        <span :if={@game.venue} class="text-base-content/50 truncate">{@game.venue.name}</span>
-      </div>
-    </div>
+    </.link>
     """
   end
 
