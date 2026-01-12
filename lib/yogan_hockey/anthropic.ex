@@ -299,6 +299,124 @@ defmodule YoganHockey.Anthropic do
     }
   end
 
+  @doc """
+  Predicts the winner of a live NHL game based on current score and game state.
+
+  Takes a game struct with team info, scores, and game status.
+  Returns a prediction with win probabilities for each team.
+  """
+  @spec predict_live_game_winner(map(), keyword()) :: {:ok, map()} | {:error, term()}
+  def predict_live_game_winner(game, opts \\ []) do
+    prompt = build_live_game_prompt(game)
+
+    messages = [
+      %{role: "user", content: prompt}
+    ]
+
+    system = """
+    You are an NHL game analyst. Given the current game state, predict which team will win. \
+    Consider current score, period, time remaining, and team records. Be concise. \
+    Respond with ONLY a JSON object, no other text.
+    """
+
+    case adapter().chat_completion(messages, Keyword.merge([system: system, max_tokens: 256], opts)) do
+      {:ok, response} ->
+        parse_live_game_response(response, game)
+
+      {:error, reason} ->
+        Logger.error("Failed to get live game prediction: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp build_live_game_prompt(game) do
+    period = game.status.period || 1
+    clock = game.status.display_clock || "20:00"
+
+    away_record = game.away_team.records["total"] || "0-0-0"
+    home_record = game.home_team.records["total"] || "0-0-0"
+
+    """
+    Current NHL game state:
+
+    #{game.away_team.abbreviation} (#{away_record}): #{game.away_team.score}
+    #{game.home_team.abbreviation} (#{home_record}): #{game.home_team.score}
+
+    Period: #{period}, Time: #{clock}
+
+    Predict the final winner. Respond with ONLY this JSON format:
+    {"winner": "TEAM_ABBREV", "win_probability": 65, "loser": "TEAM_ABBREV", "lose_probability": 35}
+    """
+  end
+
+  defp parse_live_game_response(response, game) do
+    json_str = extract_json(response)
+
+    case Jason.decode(json_str) do
+      {:ok, data} ->
+        winner_abbrev = data["winner"]
+        win_prob = (data["win_probability"] || 50) / 100
+
+        # Determine which team is the predicted winner
+        {predicted_winner, predicted_loser, winner_prob, loser_prob} =
+          if winner_abbrev == game.home_team.abbreviation do
+            {game.home_team, game.away_team, win_prob, 1 - win_prob}
+          else
+            {game.away_team, game.home_team, win_prob, 1 - win_prob}
+          end
+
+        prediction = %{
+          game_id: game.id,
+          predicted_winner: predicted_winner.abbreviation,
+          predicted_winner_logo: predicted_winner.logo,
+          winner_probability: winner_prob,
+          predicted_loser: predicted_loser.abbreviation,
+          loser_probability: loser_prob,
+          home_team: game.home_team.abbreviation,
+          away_team: game.away_team.abbreviation,
+          current_score: "#{game.away_team.score}-#{game.home_team.score}",
+          generated_at: DateTime.utc_now(),
+          model: "claude-sonnet-4-20250514"
+        }
+
+        {:ok, prediction}
+
+      {:error, _} ->
+        Logger.warning("Failed to parse live game prediction JSON: #{response}")
+        {:ok, fallback_live_game_prediction(game)}
+    end
+  end
+
+  defp fallback_live_game_prediction(game) do
+    # Simple fallback: team with more goals is predicted to win
+    {winner, loser, win_prob} =
+      cond do
+        game.home_team.score > game.away_team.score ->
+          {game.home_team, game.away_team, 0.65}
+
+        game.away_team.score > game.home_team.score ->
+          {game.away_team, game.home_team, 0.65}
+
+        true ->
+          # Tie - slight home advantage
+          {game.home_team, game.away_team, 0.52}
+      end
+
+    %{
+      game_id: game.id,
+      predicted_winner: winner.abbreviation,
+      predicted_winner_logo: winner.logo,
+      winner_probability: win_prob,
+      predicted_loser: loser.abbreviation,
+      loser_probability: 1 - win_prob,
+      home_team: game.home_team.abbreviation,
+      away_team: game.away_team.abbreviation,
+      current_score: "#{game.away_team.score}-#{game.home_team.score}",
+      generated_at: DateTime.utc_now(),
+      model: "fallback"
+    }
+  end
+
   defp adapter do
     Application.get_env(:yogan_hockey, :anthropic_adapter, YoganHockey.HTTP.AnthropicHTTPAdapter)
   end

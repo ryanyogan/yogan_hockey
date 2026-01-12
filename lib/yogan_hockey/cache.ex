@@ -15,7 +15,8 @@ defmodule YoganHockey.Cache do
     :yogan_stats,
     :del2_team,
     :playoffs,
-    :playoffs_predictions
+    :playoffs_predictions,
+    :live_game_predictions
   ]
 
   @doc """
@@ -87,7 +88,10 @@ defmodule YoganHockey.Cache do
   """
   @spec delete(atom(), term()) :: :ok
   def delete(table, key) do
-    :ets.delete(table, key)
+    case :ets.whereis(table) do
+      :undefined -> :ok
+      _ -> :ets.delete(table, key)
+    end
     :ok
   end
 
@@ -96,8 +100,12 @@ defmodule YoganHockey.Cache do
   """
   @spec all(atom()) :: [term()]
   def all(table) do
-    :ets.tab2list(table)
-    |> Enum.map(fn {_key, value} -> value end)
+    case :ets.whereis(table) do
+      :undefined -> []
+      _ ->
+        :ets.tab2list(table)
+        |> Enum.map(fn {_key, value} -> value end)
+    end
   end
 
   @doc """
@@ -105,7 +113,10 @@ defmodule YoganHockey.Cache do
   """
   @spec clear(atom()) :: :ok
   def clear(table) do
-    :ets.delete_all_objects(table)
+    case :ets.whereis(table) do
+      :undefined -> :ok
+      _ -> :ets.delete_all_objects(table)
+    end
     :ok
   end
 

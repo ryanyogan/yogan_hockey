@@ -1,10 +1,11 @@
 defmodule YoganHockeyWeb.LiveScoresLive do
   @moduledoc """
-  Live NHL scores - ESPN-style real-time scores page.
+  Live NHL scores - ESPN-style real-time scores page with AI predictions.
   """
   use YoganHockeyWeb, :live_view
 
   alias YoganHockey.NHL
+  alias YoganHockey.LiveGames.PredictionServer
 
   import YoganHockeyWeb.HockeyComponents
 
@@ -12,16 +13,26 @@ defmodule YoganHockeyWeb.LiveScoresLive do
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "nhl:live_scores")
+      Phoenix.PubSub.subscribe(YoganHockey.PubSub, "live_games:predictions")
     end
 
     games = NHL.list_live_scores()
     last_updated = NHL.live_scores_updated_at()
+
+    # Request predictions for live/scheduled games
+    if connected?(socket) do
+      PredictionServer.ensure_predictions(games)
+    end
+
+    # Get existing predictions
+    predictions = PredictionServer.get_all_predictions()
 
     {:ok,
      socket
      |> assign(:page_title, "Live Scores")
      |> assign(:games, games)
      |> assign(:last_updated, last_updated)
+     |> assign(:predictions, predictions)
      |> assign_game_categories(games)}
   end
 
@@ -32,6 +43,14 @@ defmodule YoganHockeyWeb.LiveScoresLive do
      |> assign(:games, games)
      |> assign(:last_updated, DateTime.utc_now())
      |> assign_game_categories(games)}
+  end
+
+  @impl true
+  def handle_info({:prediction_updated, game_id, prediction}, socket) do
+    require Logger
+    Logger.info("LiveScoresLive received prediction for game #{game_id}")
+    predictions = Map.put(socket.assigns.predictions, game_id, prediction)
+    {:noreply, assign(socket, :predictions, predictions)}
   end
 
   defp assign_game_categories(socket, games) do
@@ -62,7 +81,7 @@ defmodule YoganHockeyWeb.LiveScoresLive do
           In Progress ({length(@live_games)})
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <.live_game_card :for={game <- @live_games} game={game} />
+          <.live_game_card :for={game <- @live_games} game={game} prediction={@predictions[game.id]} />
         </div>
       </section>
 
@@ -72,7 +91,7 @@ defmodule YoganHockeyWeb.LiveScoresLive do
           Upcoming ({length(@scheduled_games)})
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <.game_card :for={game <- @scheduled_games} game={game} />
+          <.game_card :for={game <- @scheduled_games} game={game} prediction={@predictions[game.id]} />
         </div>
       </section>
 
@@ -97,45 +116,79 @@ defmodule YoganHockeyWeb.LiveScoresLive do
   end
 
   attr :game, :map, required: true
+  attr :prediction, :map, default: nil
 
   def live_game_card(assigns) do
+    assigns = assign(assigns, :predicted_winner_abbrev, get_predicted_winner(assigns.prediction))
+
     ~H"""
     <div class="game-card live">
       <div class="game-card-header">
-        <span class="live-indicator">Live</span>
-        <span class="font-mono">{period_display(@game.status)}</span>
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="live-indicator shrink-0">Live</span>
+          <span class="font-mono shrink-0">{period_display(@game.status)}</span>
+        </div>
+        <div :if={@game.broadcasts != []} class="relative group shrink min-w-0">
+          <span class="text-base-content/40 truncate block max-w-[80px] cursor-help">
+            {Enum.join(@game.broadcasts, ", ")}
+          </span>
+          <div class="absolute right-0 top-full mt-1 z-50 hidden group-hover:block group-focus:block bg-base-300 text-base-content text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
+            {Enum.join(@game.broadcasts, ", ")}
+          </div>
+        </div>
       </div>
       <div class="p-4">
+        <%!-- Away Team --%>
         <div class="flex items-center justify-between gap-3">
-          <%!-- Away --%>
           <div class="flex items-center gap-2 flex-1">
             <img :if={@game.away_team.logo} src={@game.away_team.logo} class="w-7 h-7 object-contain" />
             <div>
-              <div class="text-sm font-bold">{@game.away_team.abbreviation}</div>
+              <div class={[
+                "text-sm font-bold",
+                @predicted_winner_abbrev == @game.away_team.abbreviation && "text-info"
+              ]}>
+                {@game.away_team.abbreviation}
+              </div>
               <div class="text-[10px] text-base-content/50">{@game.away_team.records["total"]}</div>
             </div>
           </div>
-          <%!-- Score --%>
-          <div class="flex items-center gap-1.5 font-mono">
-            <span class={["text-2xl font-bold", @game.away_team.winner && "text-primary"]}>
-              {@game.away_team.score}
-            </span>
-            <span class="text-lg text-base-content/30">-</span>
-            <span class={["text-2xl font-bold", @game.home_team.winner && "text-primary"]}>
-              {@game.home_team.score}
-            </span>
+          <span class={["text-2xl font-bold font-mono", @game.away_team.winner && "text-primary"]}>
+            {@game.away_team.score}
+          </span>
+        </div>
+
+        <%!-- Prediction Progress Bar --%>
+        <div :if={@prediction} class="relative flex items-center my-2">
+          <div class="h-[1px] w-full flex">
+            <div class="bg-info" style={"width: #{prediction_bar_percent(@prediction)}%"}></div>
+            <div class="bg-black" style={"width: #{100 - prediction_bar_percent(@prediction)}%"}></div>
           </div>
-          <%!-- Home --%>
-          <div class="flex items-center gap-2 flex-1 justify-end">
-            <div class="text-right">
-              <div class="text-sm font-bold">{@game.home_team.abbreviation}</div>
+          <span class="absolute left-1/2 -translate-x-1/2 text-[9px] text-base-content/50 font-mono bg-base-100 px-1">
+            {@prediction.predicted_winner} {format_probability(@prediction.winner_probability)}
+          </span>
+        </div>
+
+        <%!-- Home Team --%>
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2 flex-1">
+            <img :if={@game.home_team.logo} src={@game.home_team.logo} class="w-7 h-7 object-contain" />
+            <div>
+              <div class={[
+                "text-sm font-bold",
+                @predicted_winner_abbrev == @game.home_team.abbreviation && "text-info"
+              ]}>
+                {@game.home_team.abbreviation}
+              </div>
               <div class="text-[10px] text-base-content/50">{@game.home_team.records["total"]}</div>
             </div>
-            <img :if={@game.home_team.logo} src={@game.home_team.logo} class="w-7 h-7 object-contain" />
           </div>
+          <span class={["text-2xl font-bold font-mono", @game.home_team.winner && "text-primary"]}>
+            {@game.home_team.score}
+          </span>
         </div>
-        <%!-- Clock --%>
-        <div class="mt-3 pt-3 border-t border-base-300 flex justify-between text-xs">
+
+        <%!-- Footer: Clock + Venue --%>
+        <div class="mt-3 pt-3 border-t border-base-300 flex justify-between items-center text-xs">
           <span class="font-mono text-error">{@game.status.display_clock}</span>
           <span :if={@game.venue} class="text-base-content/50 truncate">{@game.venue.name}</span>
         </div>
@@ -143,6 +196,15 @@ defmodule YoganHockeyWeb.LiveScoresLive do
     </div>
     """
   end
+
+  defp get_predicted_winner(nil), do: nil
+  defp get_predicted_winner(%{predicted_winner: winner}), do: winner
+
+  defp prediction_bar_percent(%{winner_probability: prob}) when is_float(prob) do
+    round(prob * 100)
+  end
+
+  defp prediction_bar_percent(_), do: 50
 
   defp period_display(%{period: period, detail: detail}) when is_integer(period) do
     case period do
@@ -157,4 +219,10 @@ defmodule YoganHockeyWeb.LiveScoresLive do
   defp format_time(datetime) do
     Calendar.strftime(datetime, "%H:%M:%S UTC")
   end
+
+  defp format_probability(prob) when is_float(prob) do
+    "#{round(prob * 100)}%"
+  end
+
+  defp format_probability(_), do: ""
 end
