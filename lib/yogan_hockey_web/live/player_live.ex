@@ -13,10 +13,14 @@ defmodule YoganHockeyWeb.PlayerLive do
   def mount(%{"id" => player_id}, _session, socket) do
     case NHL.get_player(player_id) do
       {:ok, player} ->
+        # Check if player is injured
+        injury = NHL.get_player_injury(player_id)
+
         {:ok,
          socket
          |> assign(:page_title, player.name)
          |> assign(:player, player)
+         |> assign(:injury, injury)
          |> assign(:favorite_ids, [])
          |> assign(:error, nil)}
 
@@ -25,6 +29,7 @@ defmodule YoganHockeyWeb.PlayerLive do
          socket
          |> assign(:page_title, "Player Not Found")
          |> assign(:player, nil)
+         |> assign(:injury, nil)
          |> assign(:favorite_ids, [])
          |> assign(:error, "Player not found")}
     end
@@ -109,6 +114,9 @@ defmodule YoganHockeyWeb.PlayerLive do
             </div>
           </div>
         </div>
+
+        <%!-- Injury Status --%>
+        <.injury_badge :if={@injury} injury={@injury} />
 
         <%!-- Current Season Stats --%>
         <section :if={@player[:current_season_stats]}>

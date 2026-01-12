@@ -97,9 +97,13 @@ defmodule YoganHockeyWeb.ScoreboardComponents do
   attr :game, :map, required: true
   attr :class, :string, default: ""
   attr :prediction, :map, default: nil
+  attr :injuries, :map, default: %{}
 
   def game_card(assigns) do
-    assigns = assign(assigns, :predicted_winner_abbrev, get_predicted_winner(assigns[:prediction]))
+    assigns =
+      assigns
+      |> assign(:predicted_winner_abbrev, get_predicted_winner(assigns[:prediction]))
+      |> assign(:total_injuries, game_injury_count(assigns[:game], assigns[:injuries]))
 
     ~H"""
     <div class={[game_card_class(@game), @class]}>
@@ -165,10 +169,14 @@ defmodule YoganHockeyWeb.ScoreboardComponents do
         </div>
       </div>
       <div class="game-status flex justify-between items-center">
-        <span :if={@game.status.state == "in"} class="font-mono text-error">
-          {period_display(@game.status.period)} {@game.status.display_clock || ""}
-        </span>
-        <span :if={@game.status.state != "in"}></span>
+        <div class="flex items-center gap-2">
+          <span :if={@game.status.state == "in"} class="font-mono text-error">
+            {period_display(@game.status.period)} {@game.status.display_clock || ""}
+          </span>
+          <.link :if={@total_injuries > 0} navigate={~p"/players#injuries"} class="text-[10px] text-error hover:underline">
+            Injured ({@total_injuries})
+          </.link>
+        </div>
         <span :if={@game.venue} class="text-base-content/50 truncate">{@game.venue.name}</span>
       </div>
     </div>
@@ -218,4 +226,13 @@ defmodule YoganHockeyWeb.ScoreboardComponents do
   end
 
   defp format_probability(_), do: ""
+
+  # Counts total injuries for both teams in a game
+  defp game_injury_count(game, injuries) when is_map(injuries) and map_size(injuries) > 0 do
+    home_id = to_string(game.home_team.id)
+    away_id = to_string(game.away_team.id)
+    Map.get(injuries, home_id, 0) + Map.get(injuries, away_id, 0)
+  end
+
+  defp game_injury_count(_, _), do: 0
 end

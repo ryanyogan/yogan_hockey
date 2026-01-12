@@ -306,4 +306,120 @@ defmodule YoganHockeyWeb.PlayerComponents do
     </div>
     """
   end
+
+  # ============================================
+  # INJURIES COMPONENTS
+  # ============================================
+
+  @doc """
+  Renders an injuries section grouped by team.
+  """
+  attr :injuries_by_team, :list, required: true
+  attr :class, :string, default: ""
+
+  def injuries_section(assigns) do
+    ~H"""
+    <div class={["space-y-3", @class]}>
+      <%= if Enum.empty?(@injuries_by_team) do %>
+        <div class="data-card p-6 text-center">
+          <p class="text-base-content/60 text-sm">No injury data available</p>
+        </div>
+      <% else %>
+        <.team_injuries_card :for={team <- @injuries_by_team} team={team} />
+      <% end %>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a card showing injuries for a single team.
+  """
+  attr :team, :map, required: true
+  attr :class, :string, default: ""
+
+  def team_injuries_card(assigns) do
+    ~H"""
+    <div class={["data-card", @class]}>
+      <div class="flex items-center gap-2 px-3 py-2 border-b border-base-300 bg-base-200/50">
+        <img :if={@team.team_logo} src={@team.team_logo} alt={@team.team_name} class="w-5 h-5 object-contain" />
+        <span class="text-xs font-bold uppercase tracking-wider">{@team.team_name}</span>
+        <span class="text-[10px] text-base-content/50">({length(@team.injuries)} injured)</span>
+      </div>
+      <div class="divide-y divide-base-300/50">
+        <.injury_row :for={injury <- @team.injuries} injury={injury} />
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a single injury row within a team card.
+  """
+  attr :injury, :map, required: true
+  attr :class, :string, default: ""
+
+  def injury_row(assigns) do
+    ~H"""
+    <div class={["flex items-center gap-3 px-3 py-2 hover:bg-base-300/30 transition-colors", @class]}>
+      <div class="w-8 h-8 bg-base-300 flex items-center justify-center shrink-0 overflow-hidden">
+        <img :if={@injury.player_headshot} src={@injury.player_headshot} alt={@injury.player_name} class="w-full h-full object-cover" />
+        <span :if={!@injury.player_headshot} class="text-sm">🏒</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <.link navigate={~p"/players/#{@injury.player_id}"} class="text-sm font-medium hover:text-primary truncate">
+            {@injury.player_name}
+          </.link>
+          <span :if={@injury.position != ""} class="text-[10px] text-base-content/50 font-mono shrink-0">
+            {@injury.position}
+          </span>
+        </div>
+        <div class="flex items-center gap-2 text-[10px] text-base-content/50">
+          <span class={injury_status_class(@injury.status)}>{@injury.status}</span>
+          <span :if={@injury.return_date} class="shrink-0">· Est. return: {@injury.return_date}</span>
+        </div>
+        <p :if={@injury.description != ""} class="text-[10px] text-base-content/40 mt-0.5">
+          {@injury.description}
+        </p>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a compact injury badge for player profile.
+  """
+  attr :injury, :map, required: true
+  attr :class, :string, default: ""
+
+  def injury_badge(assigns) do
+    ~H"""
+    <div class={["bg-error/10 border border-error/30 p-3", @class]}>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-xs font-bold text-error uppercase">Injured</span>
+        <span class={["text-xs", injury_status_class(@injury.status)]}>{@injury.status}</span>
+      </div>
+      <p :if={@injury.return_date} class="text-xs text-base-content/60">
+        Est. return: <span class="font-medium">{@injury.return_date}</span>
+      </p>
+      <p :if={@injury.description != ""} class="text-xs text-base-content/50 mt-1">
+        {@injury.description}
+      </p>
+    </div>
+    """
+  end
+
+  defp injury_status_class(status) when is_binary(status) do
+    status_lower = String.downcase(status)
+
+    cond do
+      String.contains?(status_lower, "out") -> "text-error font-medium"
+      String.contains?(status_lower, "day-to-day") -> "text-warning font-medium"
+      String.contains?(status_lower, "questionable") -> "text-warning"
+      String.contains?(status_lower, "probable") -> "text-success"
+      true -> "text-base-content/60"
+    end
+  end
+
+  defp injury_status_class(_), do: "text-base-content/60"
 end

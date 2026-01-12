@@ -14,6 +14,7 @@ defmodule YoganHockeyWeb.LiveScoresLive do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "nhl:live_scores")
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "live_games:predictions")
+      Phoenix.PubSub.subscribe(YoganHockey.PubSub, "nhl:injuries")
     end
 
     games = NHL.list_live_scores()
@@ -27,12 +28,16 @@ defmodule YoganHockeyWeb.LiveScoresLive do
     # Get existing predictions
     predictions = PredictionServer.get_all_predictions()
 
+    # Get injury counts by team_id (populated by InjuriesServer on boot)
+    injuries = build_injury_counts()
+
     {:ok,
      socket
      |> assign(:page_title, "Live Scores")
      |> assign(:games, games)
      |> assign(:last_updated, last_updated)
      |> assign(:predictions, predictions)
+     |> assign(:injuries, injuries)
      |> assign_game_categories(games)}
   end
 
@@ -51,6 +56,19 @@ defmodule YoganHockeyWeb.LiveScoresLive do
     Logger.info("LiveScoresLive received prediction for game #{game_id}")
     predictions = Map.put(socket.assigns.predictions, game_id, prediction)
     {:noreply, assign(socket, :predictions, predictions)}
+  end
+
+  @impl true
+  def handle_info({:injuries_updated, _injuries}, socket) do
+    injuries = build_injury_counts()
+    {:noreply, assign(socket, :injuries, injuries)}
+  end
+
+  defp build_injury_counts do
+    NHL.list_injuries()
+    |> Enum.group_by(& &1.team_id)
+    |> Enum.map(fn {team_id, injuries} -> {team_id, length(injuries)} end)
+    |> Enum.into(%{})
   end
 
   defp assign_game_categories(socket, games) do
@@ -81,7 +99,7 @@ defmodule YoganHockeyWeb.LiveScoresLive do
           In Progress ({length(@live_games)})
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <.live_game_card :for={game <- @live_games} game={game} prediction={@predictions[game.id]} />
+          <.live_game_card :for={game <- @live_games} game={game} prediction={@predictions[game.id]} injuries={@injuries} />
         </div>
       </section>
 
@@ -91,7 +109,7 @@ defmodule YoganHockeyWeb.LiveScoresLive do
           Upcoming ({length(@scheduled_games)})
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <.game_card :for={game <- @scheduled_games} game={game} prediction={@predictions[game.id]} />
+          <.game_card :for={game <- @scheduled_games} game={game} prediction={@predictions[game.id]} injuries={@injuries} />
         </div>
       </section>
 
@@ -117,9 +135,13 @@ defmodule YoganHockeyWeb.LiveScoresLive do
 
   attr :game, :map, required: true
   attr :prediction, :map, default: nil
+  attr :injuries, :map, default: %{}
 
   def live_game_card(assigns) do
-    assigns = assign(assigns, :predicted_winner_abbrev, get_predicted_winner(assigns.prediction))
+    assigns =
+      assigns
+      |> assign(:predicted_winner_abbrev, get_predicted_winner(assigns.prediction))
+      |> assign(:total_injuries, game_injury_count(assigns.game, assigns.injuries))
 
     ~H"""
     <div class="game-card live">
@@ -190,9 +212,14 @@ defmodule YoganHockeyWeb.LiveScoresLive do
           </span>
         </div>
 
-        <%!-- Footer: Clock + Venue --%>
+        <%!-- Footer: Clock + Venue + Injuries --%>
         <div class="mt-3 pt-3 border-t border-base-300 flex justify-between items-center text-xs">
-          <span class="font-mono text-error">{@game.status.display_clock}</span>
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-error">{@game.status.display_clock}</span>
+            <.link :if={@total_injuries > 0} navigate={~p"/players#injuries"} class="text-[10px] text-error hover:underline">
+              Injured ({@total_injuries})
+            </.link>
+          </div>
           <span :if={@game.venue} class="text-base-content/50 truncate">{@game.venue.name}</span>
         </div>
       </div>
@@ -228,4 +255,13 @@ defmodule YoganHockeyWeb.LiveScoresLive do
   end
 
   defp format_probability(_), do: ""
+
+  # Counts total injuries for both teams in a game
+  defp game_injury_count(game, injuries) when is_map(injuries) and map_size(injuries) > 0 do
+    home_id = to_string(game.home_team.id)
+    away_id = to_string(game.away_team.id)
+    Map.get(injuries, home_id, 0) + Map.get(injuries, away_id, 0)
+  end
+
+  defp game_injury_count(_, _), do: 0
 end

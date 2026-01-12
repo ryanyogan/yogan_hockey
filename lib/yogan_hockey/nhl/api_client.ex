@@ -106,4 +106,12 @@ defmodule YoganHockey.NHL.APIClient do
     encoded_query = URI.encode(query)
     http_adapter().get_json("https://site.api.espn.com/apis/common/v3/search?query=#{encoded_query}&type=player&sport=hockey&league=nhl&limit=10")
   end
+
+  @doc """
+  Fetches NHL injuries list.
+  """
+  @spec get_injuries() :: {:ok, map()} | {:error, term()}
+  def get_injuries do
+    http_adapter().get_json("#{@base_url}/injuries")
+  end
 end

@@ -17,6 +17,7 @@ defmodule YoganHockeyWeb.DashboardLive do
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "nhl:standings")
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "yogan:stats")
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "live_games:predictions")
+      Phoenix.PubSub.subscribe(YoganHockey.PubSub, "nhl:injuries")
     end
 
     games = NHL.list_live_scores()
@@ -29,11 +30,15 @@ defmodule YoganHockeyWeb.DashboardLive do
     # Get existing predictions (may be empty initially)
     predictions = PredictionServer.get_all_predictions()
 
+    # Get injury counts by team_id (populated by InjuriesServer on boot)
+    injuries = build_injury_counts()
+
     {:ok,
      socket
      |> assign(:page_title, "Dashboard")
      |> assign(:live_games, games)
      |> assign(:predictions, predictions)
+     |> assign(:injuries, injuries)
      |> assign(:standings, NHL.list_standings())
      |> assign(:yogan, DEL2.get_yogan_player())
      |> assign(:yogan_current, DEL2.get_yogan_current_season())
@@ -100,6 +105,18 @@ defmodule YoganHockeyWeb.DashboardLive do
     {:noreply, assign(socket, :predictions, predictions)}
   end
 
+  def handle_info({:injuries_updated, _injuries}, socket) do
+    injuries = build_injury_counts()
+    {:noreply, assign(socket, :injuries, injuries)}
+  end
+
+  defp build_injury_counts do
+    NHL.list_injuries()
+    |> Enum.group_by(& &1.team_id)
+    |> Enum.map(fn {team_id, injuries} -> {team_id, length(injuries)} end)
+    |> Enum.into(%{})
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -155,7 +172,7 @@ defmodule YoganHockeyWeb.DashboardLive do
               </div>
             <% else %>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <.game_card :for={game <- Enum.take(@live_games, 6)} game={game} prediction={@predictions[game.id]} />
+                <.game_card :for={game <- Enum.take(@live_games, 6)} game={game} prediction={@predictions[game.id]} injuries={@injuries} />
               </div>
             <% end %>
           </section>

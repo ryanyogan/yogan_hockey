@@ -10,6 +10,13 @@ defmodule YoganHockeyWeb.PlayersLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(YoganHockey.PubSub, "nhl:injuries")
+    end
+
+    # Load injuries from cache (populated by InjuriesServer on boot)
+    injuries_by_team = NHL.list_injuries_by_team()
+
     {:ok,
      socket
      |> assign(:page_title, "Players")
@@ -18,7 +25,8 @@ defmodule YoganHockeyWeb.PlayersLive do
      |> assign(:search_results, [])
      |> assign(:search_loading, false)
      |> assign(:favorites_loading, true)
-     |> assign(:favorite_players, [])}
+     |> assign(:favorite_players, [])
+     |> assign(:injuries_by_team, injuries_by_team)}
   end
 
   @impl true
@@ -101,6 +109,26 @@ defmodule YoganHockeyWeb.PlayersLive do
   end
 
   @impl true
+  def handle_info({:injuries_updated, injuries}, socket) do
+    injuries_by_team =
+      injuries
+      |> Enum.group_by(& &1.team_id)
+      |> Enum.map(fn {_team_id, team_injuries} ->
+        first = List.first(team_injuries)
+        %{
+          team_id: first.team_id,
+          team_name: first.team_name,
+          team_abbreviation: first.team_abbreviation,
+          team_logo: first.team_logo,
+          injuries: team_injuries
+        }
+      end)
+      |> Enum.sort_by(& &1.team_name)
+
+    {:noreply, assign(socket, :injuries_by_team, injuries_by_team)}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div id="players-page" phx-hook="FavoritePlayers" class="space-y-6">
@@ -139,6 +167,12 @@ defmodule YoganHockeyWeb.PlayersLive do
             <%!-- Empty or error state --%>
             <.empty_favorites />
         <% end %>
+      </section>
+
+      <%!-- Injuries Section --%>
+      <section id="injuries">
+        <.section_header title="Injuries" />
+        <.injuries_section injuries_by_team={@injuries_by_team} />
       </section>
 
       <%!-- Browse Teams Link --%>

@@ -7,6 +7,7 @@ defmodule YoganHockeyWeb.TeamLive do
   alias YoganHockey.NHL
 
   import YoganHockeyWeb.Helpers.StatsHelpers, only: [format_diff: 1, diff_class: 1, get_stat: 2]
+  import YoganHockeyWeb.PlayerComponents, only: [injury_row: 1]
 
   @impl true
   def mount(%{"id" => team_id}, _session, socket) do
@@ -15,6 +16,7 @@ defmodule YoganHockeyWeb.TeamLive do
         basic_team = NHL.get_team(team_id)
         standings = get_team_standings(team_id)
         schedule = get_team_schedule(team_id)
+        injuries = NHL.get_injuries_for_team(team_id)
 
         # Trigger background refresh to update cache with fresh data
         if connected?(socket) do
@@ -29,6 +31,7 @@ defmodule YoganHockeyWeb.TeamLive do
          |> assign(:basic_team, basic_team)
          |> assign(:standings, standings)
          |> assign(:schedule, schedule)
+         |> assign(:injuries, injuries)
          |> assign(:tab, "schedule")
          |> assign(:favorite_ids, [])}
 
@@ -41,6 +44,7 @@ defmodule YoganHockeyWeb.TeamLive do
          |> assign(:basic_team, nil)
          |> assign(:standings, nil)
          |> assign(:schedule, nil)
+         |> assign(:injuries, [])
          |> assign(:tab, "schedule")
          |> assign(:favorite_ids, [])}
     end
@@ -165,6 +169,14 @@ defmodule YoganHockeyWeb.TeamLive do
             class={["text-xs px-4 py-2 cursor-pointer", @tab == "stats" && "bg-primary text-primary-content", @tab != "stats" && "bg-base-300"]}
           >
             Stats
+          </button>
+          <button
+            phx-click="switch_tab"
+            phx-value-tab="injuries"
+            class={["text-xs px-4 py-2 cursor-pointer", @tab == "injuries" && "bg-primary text-primary-content", @tab != "injuries" && "bg-base-300"]}
+          >
+            Injuries
+            <span :if={@injuries != []} class="ml-1 text-error">({length(@injuries)})</span>
           </button>
         </div>
 
@@ -303,6 +315,25 @@ defmodule YoganHockeyWeb.TeamLive do
               </div>
             </div>
           </div>
+        </div>
+
+        <%!-- Injuries Tab --%>
+        <div :if={@tab == "injuries"}>
+          <%= if @injuries != [] do %>
+            <div class="data-card">
+              <div class="data-card-header">
+                <span class="data-card-title">Injured Players ({length(@injuries)})</span>
+              </div>
+              <div class="divide-y divide-base-300/50">
+                <.injury_row :for={injury <- @injuries} injury={injury} class="" />
+              </div>
+            </div>
+          <% else %>
+            <div class="data-card p-8 text-center">
+              <div class="text-4xl mb-2">💪</div>
+              <p class="text-base-content/60">No injuries reported</p>
+            </div>
+          <% end %>
         </div>
 
         <%!-- Next Game --%>

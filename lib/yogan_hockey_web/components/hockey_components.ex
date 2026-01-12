@@ -24,6 +24,10 @@ defmodule YoganHockeyWeb.HockeyComponents do
   defdelegate favorite_button(assigns), to: YoganHockeyWeb.PlayerComponents
   defdelegate player_search(assigns), to: YoganHockeyWeb.PlayerComponents
   defdelegate empty_favorites(assigns), to: YoganHockeyWeb.PlayerComponents
+  defdelegate injuries_section(assigns), to: YoganHockeyWeb.PlayerComponents
+  defdelegate team_injuries_card(assigns), to: YoganHockeyWeb.PlayerComponents
+  defdelegate injury_row(assigns), to: YoganHockeyWeb.PlayerComponents
+  defdelegate injury_badge(assigns), to: YoganHockeyWeb.PlayerComponents
 
   defdelegate standings_widget(assigns), to: YoganHockeyWeb.StandingsComponents
   defdelegate standings_table(assigns), to: YoganHockeyWeb.StandingsComponents

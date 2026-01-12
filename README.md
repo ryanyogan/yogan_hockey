@@ -9,6 +9,7 @@ A real-time NHL statistics and AI-powered predictions application built with Eli
 - **Playoff Bracket**: Interactive bracket visualization with AI-predicted advancement probabilities
 - **Team Pages**: Detailed team information including rosters, schedules, and statistics
 - **Player Search**: Search and favorite NHL players with career statistics
+- **Injury Tracking**: Real-time NHL injury reports with player status and return dates
 - **Andrew Yogan Stats**: DEL2 hockey statistics tracking with web scraping
 - **Easter Eggs**: Hidden player features for personalized content
 
@@ -22,6 +23,7 @@ The application uses several GenServers for autonomous data fetching and caching
 |-----------|--------------|---------|
 | `NHL.LiveScoresServer` | 30 seconds | Fetches live game scores from ESPN |
 | `NHL.TeamsServer` | 5 minutes | Maintains team data and standings |
+| `NHL.InjuriesServer` | 1 hour | Fetches NHL injuries from ESPN |
 | `DEL2.YoganStatsServer` | 24 hours | Scrapes DEL2 player statistics |
 | `Playoffs.PredictionServer` | 5 minutes | Generates AI playoff predictions |
 | `LiveGames.PredictionServer` | Event-driven | AI predictions for live games |
@@ -36,6 +38,7 @@ All data is cached in ETS for fast read access:
 | `:nhl_teams` | All 32 NHL teams |
 | `:nhl_standings` | Conference/division standings |
 | `:nhl_team_stats` | Team details, rosters, and schedules |
+| `:nhl_injuries` | Player injuries grouped by team |
 | `:player_cache` | Player profiles with career stats |
 | `:yogan_stats` | Andrew Yogan statistics |
 | `:playoffs` | Playoff bracket and AI predictions |
@@ -51,6 +54,7 @@ Real-time updates are broadcast via Phoenix PubSub:
 | `nhl:live_scores` | `:live_scores_updated` |
 | `nhl:teams` | `:teams_updated` |
 | `nhl:standings` | `:standings_updated` |
+| `nhl:injuries` | `:injuries_updated` |
 | `yogan:stats` | `:yogan_stats_updated`, `:team_schedule_updated` |
 | `playoffs:updates` | `:generation_started`, `:playoff_picture_updated`, `:generation_failed` |
 | `live_games:predictions` | `:prediction_updated` |

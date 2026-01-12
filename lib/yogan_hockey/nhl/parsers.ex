@@ -571,6 +571,86 @@ defmodule YoganHockey.NHL.Parsers do
   defp get_team_name_from_stats(%{"teamName" => name}) when is_binary(name), do: name
   defp get_team_name_from_stats(_), do: "NHL"
 
+  # --- Injuries Parsing ---
+
+  @doc """
+  Parses NHL injuries from the API response.
+  Groups injuries by team, sorted alphabetically.
+  """
+  @spec parse_injuries(map()) :: [map()]
+  def parse_injuries(%{"injuries" => injuries}) when is_list(injuries) do
+    injuries
+    |> Enum.flat_map(fn team_data ->
+      # Team info is directly on team_data, not nested under "team"
+      team_id = to_string(team_data["id"] || "")
+      team_name = team_data["displayName"] || team_data["name"] || ""
+      team_abbreviation = team_data["abbreviation"] || ""
+      team_logo = get_logo_href(team_data["logos"])
+
+      injured_players = team_data["injuries"] || []
+
+      Enum.map(injured_players, fn injury ->
+        athlete = injury["athlete"] || %{}
+
+        %{
+          player_id: extract_player_id(athlete),
+          player_name: athlete["displayName"] || athlete["fullName"] || "",
+          player_headshot: get_headshot(athlete),
+          position: get_in(athlete, ["position", "abbreviation"]) || "",
+          team_id: team_id,
+          team_name: team_name,
+          team_abbreviation: team_abbreviation,
+          team_logo: team_logo,
+          status: injury["status"] || "",
+          return_date: format_injury_date(injury["date"]),
+          description: injury["longComment"] || injury["shortComment"] || "",
+          type: get_in(injury, ["type", "description"]) || get_in(injury, ["type", "name"]) || ""
+        }
+      end)
+    end)
+    |> Enum.sort_by(& &1.team_name)
+  end
+
+  def parse_injuries(_), do: []
+
+  # Extract player ID from athlete links or directly
+  defp extract_player_id(%{"id" => id}) when not is_nil(id), do: to_string(id)
+  defp extract_player_id(%{"links" => [%{"href" => href} | _]}) do
+    # Extract ID from URL like "https://www.espn.com/nhl/player/_/id/3942905"
+    case Regex.run(~r/\/id\/(\d+)/, href) do
+      [_, id] -> id
+      _ -> ""
+    end
+  end
+  defp extract_player_id(_), do: ""
+
+  # Format injury date to a readable format
+  defp format_injury_date(nil), do: nil
+  defp format_injury_date(date_string) when is_binary(date_string) do
+    # Try full ISO8601 first
+    case DateTime.from_iso8601(date_string) do
+      {:ok, dt, _} ->
+        Calendar.strftime(dt, "%b %d, %Y")
+
+      _ ->
+        # Handle format without seconds (e.g., "2026-01-08T19:31Z")
+        normalized = Regex.replace(~r/T(\d{2}:\d{2})Z$/, date_string, "T\\1:00Z")
+
+        case DateTime.from_iso8601(normalized) do
+          {:ok, dt, _} ->
+            Calendar.strftime(dt, "%b %d, %Y")
+
+          _ ->
+            # Try just date parsing as fallback
+            case Date.from_iso8601(String.slice(date_string, 0, 10)) do
+              {:ok, date} -> Calendar.strftime(date, "%b %d, %Y")
+              _ -> date_string
+            end
+        end
+    end
+  end
+  defp format_injury_date(date), do: date
+
   # --- Shared Helpers ---
 
   defp parse_stat_value(value) when is_float(value), do: round(value)

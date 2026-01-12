@@ -11,6 +11,7 @@ defmodule YoganHockey.Cache do
     :nhl_teams,
     :nhl_standings,
     :nhl_team_stats,
+    :nhl_injuries,
     :player_cache,
     :yogan_stats,
     :del2_team,

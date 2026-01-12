@@ -318,4 +318,93 @@ defmodule YoganHockey.NHL do
     end
   end
 
+  # --- Injuries ---
+
+  @doc """
+  Returns all NHL injuries from cache.
+  """
+  @spec list_injuries() :: [map()]
+  def list_injuries do
+    case Cache.get(:nhl_injuries, :all) do
+      nil -> []
+      injuries -> injuries
+    end
+  end
+
+  @doc """
+  Returns injuries grouped by team (sorted alphabetically by team name).
+  """
+  @spec list_injuries_by_team() :: [%{team_id: String.t(), team_name: String.t(), team_abbreviation: String.t(), team_logo: String.t() | nil, injuries: [map()]}]
+  def list_injuries_by_team do
+    list_injuries()
+    |> Enum.group_by(& &1.team_id)
+    |> Enum.map(fn {_team_id, injuries} ->
+      first = List.first(injuries)
+      %{
+        team_id: first.team_id,
+        team_name: first.team_name,
+        team_abbreviation: first.team_abbreviation,
+        team_logo: first.team_logo,
+        injuries: injuries
+      }
+    end)
+    |> Enum.sort_by(& &1.team_name)
+  end
+
+  @doc """
+  Returns injuries for a specific team by team ID.
+  """
+  @spec get_injuries_for_team(String.t() | integer()) :: [map()]
+  def get_injuries_for_team(team_id) do
+    team_id = to_string(team_id)
+
+    list_injuries()
+    |> Enum.filter(&(&1.team_id == team_id))
+  end
+
+  @doc """
+  Returns injury count for a specific team by team ID.
+  """
+  @spec injury_count_for_team(String.t() | integer()) :: non_neg_integer()
+  def injury_count_for_team(team_id) do
+    get_injuries_for_team(team_id) |> length()
+  end
+
+  @doc """
+  Returns injury info for a specific player by player ID.
+  Returns nil if player is not injured.
+  """
+  @spec get_player_injury(String.t() | integer()) :: map() | nil
+  def get_player_injury(player_id) do
+    player_id = to_string(player_id)
+
+    list_injuries()
+    |> Enum.find(&(&1.player_id == player_id))
+  end
+
+  @doc """
+  Fetches and caches NHL injuries.
+  """
+  @spec refresh_injuries() :: {:ok, [map()]} | {:error, term()}
+  def refresh_injuries do
+    case APIClient.get_injuries() do
+      {:ok, data} ->
+        injuries = Parsers.parse_injuries(data)
+        Cache.put(:nhl_injuries, :all, injuries)
+        Cache.put(:nhl_injuries, :last_updated, DateTime.utc_now())
+        {:ok, injuries}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @doc """
+  Returns when injuries were last updated.
+  """
+  @spec injuries_updated_at() :: DateTime.t() | nil
+  def injuries_updated_at do
+    Cache.get(:nhl_injuries, :last_updated)
+  end
+
 end
