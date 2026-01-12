@@ -67,10 +67,26 @@ defmodule YoganHockey.NHL.TeamsServer do
 
   @impl true
   def handle_info(:prepopulate_team_details, state) do
-    # Wait a bit for initial teams to load, then prepopulate
-    Process.sleep(2000)
-    prepopulate_all_team_details()
-    {:noreply, %{state | prepopulated: true}}
+    # Schedule prepopulation after a delay (non-blocking)
+    Process.send_after(self(), :do_prepopulate, 2000)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:do_prepopulate, state) do
+    teams = NHL.list_teams()
+
+    if teams == [] do
+      Logger.warning("No teams available to prepopulate - will retry in 30s")
+      Process.send_after(self(), :do_prepopulate, 30_000)
+      {:noreply, state}
+    else
+      # Run prepopulation in a supervised task to avoid blocking the GenServer
+      Task.Supervisor.start_child(YoganHockey.TaskSupervisor, fn ->
+        do_prepopulate_teams(teams)
+      end)
+      {:noreply, %{state | prepopulated: true}}
+    end
   end
 
   @impl true
@@ -127,36 +143,28 @@ defmodule YoganHockey.NHL.TeamsServer do
     %{state | last_poll: DateTime.utc_now()}
   end
 
-  defp prepopulate_all_team_details do
-    teams = NHL.list_teams()
+  defp do_prepopulate_teams(teams) do
+    Logger.info("Pre-populating team details for #{length(teams)} teams...")
 
-    if teams == [] do
-      Logger.warning("No teams available to prepopulate - will retry later")
-      # Retry in 30 seconds
-      Process.send_after(self(), :prepopulate_team_details, 30_000)
-    else
-      Logger.info("Pre-populating team details for #{length(teams)} teams...")
-
-      teams
-      |> Enum.map(& &1.id)
-      |> Enum.chunk_every(4)
-      |> Enum.each(fn chunk ->
-        # Fetch in parallel batches of 4 using supervised tasks
-        tasks =
-          Enum.map(chunk, fn team_id ->
-            Task.Supervisor.async_nolink(YoganHockey.TaskSupervisor, fn ->
-              refresh_single_team_detail(team_id)
-            end)
+    teams
+    |> Enum.map(& &1.id)
+    |> Enum.chunk_every(4)
+    |> Enum.each(fn chunk ->
+      # Fetch in parallel batches of 4 using supervised tasks
+      tasks =
+        Enum.map(chunk, fn team_id ->
+          Task.Supervisor.async_nolink(YoganHockey.TaskSupervisor, fn ->
+            refresh_single_team_detail(team_id)
           end)
+        end)
 
-        Task.await_many(tasks, 30_000)
+      Task.await_many(tasks, 30_000)
 
-        # Small delay between batches to avoid rate limiting
-        Process.sleep(500)
-      end)
+      # Small delay between batches to avoid rate limiting
+      Process.sleep(500)
+    end)
 
-      Logger.info("Finished pre-populating team details for #{length(teams)} teams")
-    end
+    Logger.info("Finished pre-populating team details for #{length(teams)} teams")
   end
 
   defp refresh_single_team_detail(team_id) do

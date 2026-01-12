@@ -1,8 +1,9 @@
 defmodule YoganHockey.DEL2.YoganStatsServer do
   @moduledoc """
-  GenServer that polls Andrew Yogan's stats from Elite Prospects every 5 minutes.
+  GenServer that polls Andrew Yogan's stats from Elite Prospects/HockeyDB every 24 hours.
 
-  Stats don't change frequently, so a longer polling interval is appropriate.
+  Stats don't change frequently during the season, so a long polling interval is appropriate.
+  Uses exponential backoff on failures (up to 30 minutes) before retrying.
   """
 
   use GenServer
