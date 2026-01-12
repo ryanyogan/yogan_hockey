@@ -29,6 +29,11 @@ defmodule YoganHockeyWeb.HockeyComponents do
   defdelegate standings_table(assigns), to: YoganHockeyWeb.StandingsComponents
   defdelegate team_grid(assigns), to: YoganHockeyWeb.StandingsComponents
 
+  defdelegate playoff_bracket(assigns), to: YoganHockeyWeb.BracketComponents
+  defdelegate bracket_round(assigns), to: YoganHockeyWeb.BracketComponents
+  defdelegate series_matchup(assigns), to: YoganHockeyWeb.BracketComponents
+  defdelegate prediction_card(assigns), to: YoganHockeyWeb.BracketComponents
+
   # ============================================
   # UTILITY COMPONENTS
   # ============================================

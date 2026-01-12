@@ -50,7 +50,7 @@ defmodule YoganHockeyWeb.Layouts do
             <.link navigate={~p"/nhl"} class="nav-link">Standings</.link>
             <.link navigate={~p"/nhl?tab=teams"} class="nav-link">Teams</.link>
             <.link navigate={~p"/players"} class="nav-link">Players</.link>
-            <.link navigate={~p"/yogan"} class="nav-link">Yogan</.link>
+            <.link navigate={~p"/playoffs"} class="nav-link">Playoffs</.link>
             <.link navigate={~p"/nhl/live"} class="nav-link">
               <span class="live-indicator">Live Scores</span>
             </.link>
@@ -81,7 +81,7 @@ defmodule YoganHockeyWeb.Layouts do
         <.link navigate={~p"/nhl"} class="mobile-nav-link">Standings</.link>
         <.link navigate={~p"/nhl?tab=teams"} class="mobile-nav-link">Teams</.link>
         <.link navigate={~p"/players"} class="mobile-nav-link">Players</.link>
-        <.link navigate={~p"/yogan"} class="mobile-nav-link">Andrew Yogan</.link>
+        <.link navigate={~p"/playoffs"} class="mobile-nav-link">Playoffs</.link>
         <.link navigate={~p"/nhl/live"} class="mobile-nav-link">
           <span class="live-indicator">Live Scores</span>
         </.link>

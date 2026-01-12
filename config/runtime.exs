@@ -1,5 +1,11 @@
 import Config
 
+# Load environment variables from .env file (if it exists)
+if config_env() in [:dev, :test] do
+  Dotenvy.source!([".env", ".env.#{config_env()}", ".env.#{config_env()}.local"])
+  |> Enum.each(fn {key, value} -> System.put_env(key, value) end)
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -18,6 +24,11 @@ import Config
 # script that automatically sets the env var above.
 if System.get_env("PHX_SERVER") do
   config :yogan_hockey, YoganHockeyWeb.Endpoint, server: true
+end
+
+# Anthropic API key for AI predictions
+if api_key = System.get_env("ANTHROPIC_API_KEY") do
+  config :yogan_hockey, :anthropic_api_key, api_key
 end
 
 if config_env() == :prod do

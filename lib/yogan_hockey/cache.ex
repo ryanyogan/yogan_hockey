@@ -13,7 +13,9 @@ defmodule YoganHockey.Cache do
     :nhl_team_stats,
     :player_cache,
     :yogan_stats,
-    :del2_team
+    :del2_team,
+    :playoffs,
+    :playoffs_predictions
   ]
 
   @doc """

@@ -35,3 +35,8 @@ yogan_hockey-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+

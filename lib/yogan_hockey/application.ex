@@ -37,7 +37,8 @@ defmodule YoganHockey.Application do
       [
         YoganHockey.NHL.LiveScoresServer,
         YoganHockey.NHL.TeamsServer,
-        YoganHockey.DEL2.YoganStatsServer
+        YoganHockey.DEL2.YoganStatsServer,
+        YoganHockey.Playoffs.PredictionServer
       ]
     else
       []

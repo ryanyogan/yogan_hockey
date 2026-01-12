@@ -25,6 +25,7 @@ defmodule YoganHockeyWeb.Router do
       live "/nhl/teams/:id", TeamLive, :show
       live "/players", PlayersLive, :index
       live "/players/:id", PlayerLive, :show
+      live "/playoffs", PlayoffsLive, :index
     end
   end
 

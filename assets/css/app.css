@@ -620,3 +620,921 @@ body {
     font-size: 14px;
   }
 }
+
+/* ============================================
+   PLAYOFFS BRACKET STYLES
+   ============================================ */
+
+.playoffs-page {
+  @apply space-y-6;
+}
+
+.playoffs-header {
+  @apply text-center py-4;
+}
+
+.playoffs-title {
+  @apply text-2xl sm:text-3xl font-bold;
+}
+
+.playoffs-subtitle {
+  @apply text-sm text-base-content/60 mt-1;
+}
+
+.playoffs-content {
+  @apply overflow-x-auto pb-4;
+}
+
+/* Bracket Container */
+.playoff-bracket {
+  @apply min-w-max;
+}
+
+.bracket-container {
+  @apply flex gap-4 sm:gap-6;
+}
+
+.bracket-notice {
+  @apply text-center text-sm mt-4 p-2 bg-warning/10 border border-warning/30;
+}
+
+/* Bracket Round */
+.bracket-round {
+  @apply flex flex-col gap-4;
+  min-width: 200px;
+}
+
+.bracket-round[data-round="0"] .round-matchups {
+  @apply gap-4;
+}
+
+.bracket-round[data-round="1"] .round-matchups {
+  @apply gap-12 pt-8;
+}
+
+.bracket-round[data-round="2"] .round-matchups {
+  @apply gap-24 pt-16;
+}
+
+.bracket-round[data-round="3"] .round-matchups {
+  @apply pt-32;
+}
+
+.round-header {
+  @apply text-center py-2 border-b border-base-300;
+}
+
+.round-name {
+  @apply text-xs uppercase tracking-wider font-medium text-base-content/60;
+}
+
+.round-matchups {
+  @apply flex flex-col gap-4;
+}
+
+/* Series Matchup */
+.series-matchup {
+  @apply bg-base-200 border border-base-300 relative;
+  @apply hover:border-primary/50 transition-colors;
+}
+
+.series-matchup.completed {
+  @apply opacity-80;
+}
+
+.series-matchup.in-progress {
+  @apply border-primary/50;
+}
+
+.matchup-divider {
+  @apply flex items-center justify-center py-0.5 bg-base-300/50;
+}
+
+.vs-text {
+  @apply text-[10px] uppercase text-base-content/40;
+}
+
+/* Team Row */
+.team-row {
+  @apply flex items-center justify-between px-3 py-2;
+  @apply hover:bg-base-300/30 transition-colors;
+}
+
+.team-row.winner {
+  @apply bg-success/10;
+}
+
+.team-info {
+  @apply flex items-center gap-2 min-w-0;
+}
+
+.team-logo {
+  @apply w-6 h-6 flex-shrink-0;
+}
+
+.team-logo img {
+  @apply w-full h-full object-contain;
+}
+
+.team-abbrev {
+  @apply text-xs font-mono font-bold;
+}
+
+.team-details {
+  @apply flex items-center gap-1.5 min-w-0;
+}
+
+.team-seed {
+  @apply text-[10px] text-base-content/40;
+}
+
+.team-name {
+  @apply text-sm font-medium truncate;
+}
+
+.team-score {
+  @apply flex items-center gap-2;
+}
+
+.series-wins {
+  @apply text-lg font-bold font-mono;
+}
+
+/* Win Probability Badge */
+.win-prob {
+  @apply text-[10px] font-mono px-1.5 py-0.5;
+}
+
+.win-prob.high-prob {
+  @apply bg-success/20 text-success;
+}
+
+.win-prob.medium-prob {
+  @apply bg-warning/20 text-warning;
+}
+
+.win-prob.low-prob {
+  @apply bg-base-content/10 text-base-content/50;
+}
+
+/* Prediction Tooltip */
+.prediction-tooltip {
+  @apply absolute top-1 right-1;
+}
+
+.tooltip-trigger {
+  @apply p-1 text-primary/60 hover:text-primary cursor-help;
+}
+
+.tooltip-content {
+  @apply absolute right-0 top-6 z-10 w-64;
+  @apply bg-base-300 border border-base-content/20 p-3 shadow-lg;
+  @apply opacity-0 invisible transition-all;
+}
+
+.prediction-tooltip:hover .tooltip-content {
+  @apply opacity-100 visible;
+}
+
+.tooltip-header {
+  @apply text-xs font-bold uppercase tracking-wider text-primary mb-2;
+}
+
+.tooltip-body {
+  @apply text-xs text-base-content/80 space-y-2;
+}
+
+.predicted-winner {
+  @apply font-medium text-base-content;
+}
+
+.tooltip-model {
+  @apply text-[10px] text-base-content/40 pt-1 border-t border-base-content/10;
+}
+
+/* Empty Matchup */
+.empty-matchup {
+  @apply text-center;
+}
+
+.tbd-row {
+  @apply py-3;
+}
+
+.tbd-text {
+  @apply text-xs text-base-content/30 uppercase;
+}
+
+/* Prediction Card */
+.prediction-card {
+  @apply bg-base-300 border border-base-content/10 p-4 mt-4;
+}
+
+.prediction-header {
+  @apply flex items-center justify-between mb-3;
+}
+
+.prediction-title {
+  @apply text-sm font-bold uppercase tracking-wider text-primary;
+}
+
+.prediction-model {
+  @apply text-[10px] text-base-content/40;
+}
+
+.prediction-matchup {
+  @apply flex items-center justify-center gap-4 py-3;
+}
+
+.prediction-team {
+  @apply text-center;
+}
+
+.prediction-team .team-name {
+  @apply block text-sm mb-1;
+}
+
+.prediction-team .team-prob {
+  @apply text-lg font-bold;
+}
+
+.prediction-reasoning {
+  @apply text-sm text-base-content/70 border-t border-base-content/10 pt-3 mt-3;
+}
+
+.prediction-outcome {
+  @apply text-sm mt-2;
+}
+
+.outcome-label {
+  @apply text-base-content/50;
+}
+
+.outcome-value {
+  @apply font-medium;
+}
+
+.prediction-timestamp {
+  @apply text-[10px] text-base-content/40 mt-3;
+}
+
+/* Bracket Actions */
+.bracket-actions {
+  @apply flex justify-center gap-2 mt-4;
+}
+
+/* Generating Predictions Indicator */
+.generating-predictions {
+  @apply flex items-center justify-center gap-2 py-3 text-sm text-primary;
+  @apply bg-primary/10 border border-primary/20 mt-4;
+}
+
+/* Bracket Loading */
+.bracket-loading {
+  @apply flex flex-col items-center justify-center py-12;
+}
+
+.loading-spinner {
+  @apply w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin;
+}
+
+.bracket-error {
+  @apply text-center py-12 space-y-4;
+}
+
+/* Matchup Modal */
+.matchup-modal-overlay {
+  @apply fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4;
+}
+
+.matchup-modal {
+  @apply bg-base-200 border border-base-300 max-w-md w-full p-6 relative;
+}
+
+.modal-close {
+  @apply absolute top-2 right-2 text-2xl text-base-content/50 hover:text-base-content;
+  @apply w-8 h-8 flex items-center justify-center cursor-pointer;
+}
+
+.modal-title {
+  @apply text-lg font-bold mb-4;
+}
+
+.modal-teams {
+  @apply flex items-center justify-center gap-4 py-4;
+}
+
+.modal-team {
+  @apply text-center;
+}
+
+.modal-team img {
+  @apply w-12 h-12 mx-auto mb-2;
+}
+
+.modal-vs {
+  @apply text-base-content/40 uppercase text-sm;
+}
+
+.team-wins {
+  @apply text-xs text-base-content/60 block mt-1;
+}
+
+.no-prediction {
+  @apply text-center py-4 space-y-3;
+}
+
+/* Playoffs Legend */
+.playoffs-legend {
+  @apply bg-base-200 border border-base-300 p-4 mt-6;
+}
+
+.playoffs-legend h3 {
+  @apply text-xs uppercase tracking-wider font-medium text-base-content/60 mb-3;
+}
+
+.legend-items {
+  @apply flex flex-wrap gap-4;
+}
+
+.legend-item {
+  @apply flex items-center gap-2;
+}
+
+.legend-note {
+  @apply text-xs text-base-content/40 mt-3 pt-3 border-t border-base-content/10;
+}
+
+/* Responsive Bracket */
+@media (max-width: 768px) {
+  .bracket-round {
+    min-width: 160px;
+  }
+
+  .team-name {
+    @apply text-xs;
+  }
+
+  .series-wins {
+    @apply text-base;
+  }
+}
+
+/* ============================================
+   MOBILE-FIRST PLAYOFFS PAGE
+   Optimized for iPhone 16/17
+   ============================================ */
+
+/* Main Container */
+.playoffs-container {
+  @apply max-w-4xl mx-auto px-4 py-4 space-y-4;
+  /* Safe area padding for iPhone notch/dynamic island */
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
+}
+
+/* Header */
+.playoffs-container header.playoffs-header {
+  @apply text-center py-4;
+}
+
+.playoffs-container header.playoffs-header h1 {
+  @apply text-2xl font-bold tracking-tight;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.playoffs-container .playoffs-subtitle {
+  @apply text-xs text-base-content/50 uppercase tracking-wider mt-1;
+}
+
+/* Tab Navigation */
+.playoffs-tabs {
+  @apply flex border-b border-base-300 sticky top-0 bg-base-100 z-10;
+  /* Safe area for iPhone */
+  padding-top: env(safe-area-inset-top);
+}
+
+.playoffs-tab {
+  @apply flex-1 py-3 text-center text-sm font-medium uppercase tracking-wider;
+  @apply transition-all duration-200 cursor-pointer;
+  @apply text-base-content/60 hover:text-base-content hover:bg-base-200;
+  /* Touch-friendly height */
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.playoffs-tab.active {
+  @apply text-primary border-b-2 border-primary bg-base-200/30;
+}
+
+/* Content Area */
+.playoffs-container .playoffs-content {
+  @apply space-y-4;
+}
+
+/* Loading States */
+.loading-container {
+  @apply flex flex-col items-center justify-center py-16 space-y-4;
+}
+
+.spinner {
+  @apply w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner-small {
+  @apply w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full inline-block mr-2;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  @apply text-sm text-base-content/70;
+}
+
+.loading-subtext {
+  @apply text-xs text-base-content/40;
+}
+
+/* AI Generating Animation */
+.ai-generating-container {
+  @apply flex flex-col items-center justify-center py-20 text-center;
+}
+
+.ai-brain-animation {
+  @apply relative w-32 h-32 mb-6;
+}
+
+.brain-pulse {
+  @apply absolute inset-0 rounded-full;
+  background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
+  animation: brain-pulse 2s ease-in-out infinite;
+  opacity: 0.2;
+}
+
+.brain-rings {
+  @apply absolute inset-0;
+}
+
+.ring {
+  @apply absolute rounded-full border-2 border-primary/30;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ring-1 {
+  width: 60%;
+  height: 60%;
+  animation: ring-expand 2s ease-out infinite;
+}
+
+.ring-2 {
+  width: 60%;
+  height: 60%;
+  animation: ring-expand 2s ease-out infinite 0.5s;
+}
+
+.ring-3 {
+  width: 60%;
+  height: 60%;
+  animation: ring-expand 2s ease-out infinite 1s;
+}
+
+@keyframes ring-expand {
+  0% {
+    width: 40%;
+    height: 40%;
+    opacity: 0.8;
+    border-color: var(--color-primary);
+  }
+  100% {
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    border-color: var(--color-primary);
+  }
+}
+
+.brain-icon {
+  @apply absolute inset-0 flex items-center justify-center text-primary;
+}
+
+.brain-icon svg {
+  @apply w-16 h-16;
+}
+
+.brain-icon.generating svg {
+  animation: brain-think 1.5s ease-in-out infinite;
+}
+
+@keyframes brain-pulse {
+  0%, 100% {
+    transform: scale(0.8);
+    opacity: 0.1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.3;
+  }
+}
+
+@keyframes brain-think {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.ai-generating-title {
+  @apply text-xl font-bold text-base-content mb-2;
+}
+
+.ai-generating-text {
+  @apply text-sm text-base-content/60 max-w-xs mx-auto leading-relaxed;
+}
+
+.ai-progress-dots {
+  @apply flex gap-2 mt-6;
+}
+
+.ai-progress-dots .dot {
+  @apply w-2 h-2 rounded-full bg-primary;
+  animation: dot-bounce 1.4s ease-in-out infinite;
+}
+
+.ai-progress-dots .dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.ai-progress-dots .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ai-progress-dots .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dot-bounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Regenerating Notice */
+.regenerating-notice {
+  @apply flex items-center gap-2 mt-3 pt-3 border-t border-base-300/50;
+  @apply text-xs text-primary;
+}
+
+/* Empty State */
+.empty-container {
+  @apply text-center py-12 space-y-2;
+}
+
+.empty-container p {
+  @apply text-base-content/60;
+}
+
+.empty-hint {
+  @apply text-sm text-base-content/40;
+}
+
+/* Playoff Picture View */
+.playoff-picture {
+  @apply space-y-4;
+}
+
+/* Analysis Card */
+.analysis-card {
+  @apply bg-gradient-to-br from-base-200 to-base-300/50 border border-base-300 p-4 space-y-3;
+}
+
+.analysis-header {
+  @apply flex items-center justify-between;
+}
+
+.ai-badge {
+  @apply text-[10px] font-bold uppercase tracking-wider px-2 py-1;
+  @apply bg-primary/20 text-primary border border-primary/30;
+}
+
+.timestamp {
+  @apply text-[10px] text-base-content/40 font-mono;
+}
+
+.analysis-text {
+  @apply text-sm text-base-content/80 leading-relaxed;
+}
+
+.cup-favorite {
+  @apply flex items-center gap-2 pt-2 border-t border-base-300/50;
+}
+
+.cup-favorite .label {
+  @apply text-xs text-base-content/50 uppercase tracking-wider;
+}
+
+.cup-favorite .value {
+  @apply font-bold text-accent;
+}
+
+/* Conference Card */
+.conference-card {
+  @apply bg-base-200 border border-base-300;
+}
+
+.conference-title {
+  @apply px-4 py-3 font-bold text-sm uppercase tracking-wider;
+  @apply border-b border-base-300 bg-base-300/30;
+}
+
+.teams-list {
+  @apply divide-y divide-base-300/50;
+}
+
+/* Team Prediction Card */
+.team-pred-card {
+  @apply p-4 space-y-3;
+  @apply hover:bg-base-300/20 transition-colors;
+}
+
+.team-pred-card .team-header {
+  @apply flex items-center gap-3;
+}
+
+.team-pred-card .team-seed {
+  @apply w-6 h-6 flex items-center justify-center;
+  @apply text-xs font-bold text-base-content/40 bg-base-300/50;
+}
+
+.team-logo-container {
+  @apply w-8 h-8 flex items-center justify-center;
+}
+
+.team-pred-card .team-logo {
+  @apply w-8 h-8 object-contain;
+}
+
+.team-pred-card .team-abbr {
+  @apply text-xs font-bold text-base-content/60;
+}
+
+.team-name-container {
+  @apply flex-1 min-w-0;
+}
+
+.team-pred-card .team-name {
+  @apply font-medium text-sm truncate;
+}
+
+/* Progress Bars */
+.prob-bars {
+  @apply space-y-2;
+}
+
+.prob-row {
+  @apply flex items-center gap-2;
+}
+
+.prob-row.highlight {
+  @apply pt-2 mt-2 border-t border-base-300/50;
+}
+
+.prob-row.highlight .prob-label {
+  @apply text-accent font-medium;
+}
+
+.prob-label {
+  @apply text-[10px] text-base-content/50 w-16 flex-shrink-0;
+}
+
+.prob-bar-container {
+  @apply flex-1 h-2 bg-base-300/50 overflow-hidden;
+}
+
+.prob-bar-fill {
+  @apply h-full bg-primary transition-all duration-500 ease-out;
+}
+
+.prob-row.highlight .prob-bar-fill {
+  @apply bg-accent;
+}
+
+.prob-value {
+  @apply text-xs font-mono w-10 text-right;
+}
+
+/* Probability color classes */
+.prob-value.high,
+.matchup-prob-value.high {
+  @apply text-success font-bold;
+}
+
+.prob-value.medium,
+.matchup-prob-value.medium {
+  @apply text-warning;
+}
+
+.prob-value.low,
+.matchup-prob-value.low {
+  @apply text-base-content/40;
+}
+
+/* Bracket View */
+.bracket-view {
+  @apply space-y-6;
+}
+
+.bracket-conference {
+  @apply space-y-4;
+}
+
+.bracket-conf-title {
+  @apply py-3 font-bold text-sm uppercase tracking-wider;
+  @apply border-b border-base-300 text-center;
+}
+
+.bracket-view .bracket-round {
+  @apply space-y-3;
+}
+
+.bracket-view .round-title {
+  @apply text-xs text-base-content/50 uppercase tracking-wider mb-3 text-center;
+}
+
+.bracket-matchups {
+  @apply space-y-3;
+}
+
+/* Matchup Card - ESPN-style card similar to other cards in the app */
+.matchup-card {
+  @apply bg-base-200 border border-base-300;
+  @apply hover:border-primary/50 transition-colors;
+}
+
+.matchup-team {
+  @apply px-4 py-3;
+}
+
+.matchup-team.top {
+  @apply border-b-0;
+}
+
+.matchup-team.bottom {
+  @apply border-t-0;
+}
+
+.matchup-team-info {
+  @apply flex items-center gap-3 mb-2;
+}
+
+.matchup-logo {
+  @apply w-8 h-8 object-contain;
+}
+
+.matchup-team-details {
+  @apply flex items-center gap-2;
+}
+
+.matchup-seed {
+  @apply text-xs text-base-content/50;
+}
+
+.matchup-name {
+  @apply text-sm font-medium;
+}
+
+.matchup-divider {
+  @apply flex items-center justify-center py-1 bg-base-300/30;
+}
+
+.vs-badge {
+  @apply text-[10px] text-base-content/40 uppercase tracking-wider font-medium;
+}
+
+.matchup-prob-container {
+  @apply flex items-center gap-3;
+}
+
+.matchup-prob-bar {
+  @apply flex-1 h-2 bg-base-300/50 overflow-hidden;
+}
+
+.matchup-prob-fill {
+  @apply h-full transition-all duration-500 ease-out;
+}
+
+.matchup-prob-fill.high {
+  @apply bg-success;
+}
+
+.matchup-prob-fill.medium {
+  @apply bg-warning;
+}
+
+.matchup-prob-fill.low {
+  @apply bg-base-content/20;
+}
+
+.matchup-prob-value {
+  @apply text-xs font-mono w-10 text-right;
+}
+
+/* Footer */
+.playoffs-footer {
+  @apply text-center py-4 border-t border-base-300/50;
+}
+
+.playoffs-footer p {
+  @apply text-[10px] text-base-content/30 leading-relaxed max-w-sm mx-auto;
+}
+
+/* Desktop Enhancements */
+@media (min-width: 768px) {
+  .playoffs-container {
+    @apply px-6 py-6 space-y-6;
+  }
+
+  .playoffs-container header.playoffs-header h1 {
+    @apply text-3xl;
+  }
+
+  .playoffs-tabs {
+    @apply sticky top-0;
+    position: relative;
+  }
+
+  .playoffs-tab {
+    @apply py-4;
+  }
+
+  .team-pred-card {
+    @apply flex items-center gap-4;
+  }
+
+  .team-pred-card .team-header {
+    @apply w-1/3 flex-shrink-0;
+  }
+
+  .prob-bars {
+    @apply flex-1 grid grid-cols-5 gap-3;
+  }
+
+  .prob-row {
+    @apply flex-col items-stretch gap-1;
+  }
+
+  .prob-row.highlight {
+    @apply pt-0 mt-0 border-t-0;
+  }
+
+  .prob-label {
+    @apply w-auto text-center;
+  }
+
+  .prob-bar-container {
+    @apply h-4;
+  }
+
+  .prob-value {
+    @apply w-auto text-center;
+  }
+
+  /* Side-by-side conferences on desktop */
+  .bracket-view {
+    @apply grid grid-cols-2 gap-4;
+  }
+}
+
+/* Large Desktop */
+@media (min-width: 1024px) {
+  .playoffs-container {
+    @apply max-w-6xl;
+  }
+
+  .team-pred-card .team-header {
+    @apply w-1/4;
+  }
+
+  .prob-bars {
+    @apply grid-cols-5;
+  }
+}
