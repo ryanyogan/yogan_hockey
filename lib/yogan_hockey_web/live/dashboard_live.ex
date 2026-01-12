@@ -6,6 +6,7 @@ defmodule YoganHockeyWeb.DashboardLive do
 
   alias YoganHockey.NHL
   alias YoganHockey.DEL2
+  alias YoganHockey.LiveGames.PredictionServer
 
   import YoganHockeyWeb.HockeyComponents
 
@@ -15,12 +16,24 @@ defmodule YoganHockeyWeb.DashboardLive do
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "nhl:live_scores")
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "nhl:standings")
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "yogan:stats")
+      Phoenix.PubSub.subscribe(YoganHockey.PubSub, "live_games:predictions")
     end
+
+    games = NHL.list_live_scores()
+
+    # Request predictions for games (async)
+    if connected?(socket) do
+      PredictionServer.ensure_predictions(games)
+    end
+
+    # Get existing predictions (may be empty initially)
+    predictions = PredictionServer.get_all_predictions()
 
     {:ok,
      socket
      |> assign(:page_title, "Dashboard")
-     |> assign(:live_games, NHL.list_live_scores())
+     |> assign(:live_games, games)
+     |> assign(:predictions, predictions)
      |> assign(:standings, NHL.list_standings())
      |> assign(:yogan, DEL2.get_yogan_player())
      |> assign(:yogan_current, DEL2.get_yogan_current_season())
@@ -82,6 +95,11 @@ defmodule YoganHockeyWeb.DashboardLive do
      |> assign(:yogan_current, stats.current_season)}
   end
 
+  def handle_info({:prediction_updated, game_id, prediction}, socket) do
+    predictions = Map.put(socket.assigns.predictions, game_id, prediction)
+    {:noreply, assign(socket, :predictions, predictions)}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -137,7 +155,7 @@ defmodule YoganHockeyWeb.DashboardLive do
               </div>
             <% else %>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <.game_card :for={game <- Enum.take(@live_games, 6)} game={game} />
+                <.game_card :for={game <- Enum.take(@live_games, 6)} game={game} prediction={@predictions[game.id]} />
               </div>
             <% end %>
           </section>

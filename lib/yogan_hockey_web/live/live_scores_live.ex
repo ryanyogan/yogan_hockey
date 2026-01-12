@@ -161,9 +161,12 @@ defmodule YoganHockeyWeb.LiveScoresLive do
         <div :if={@prediction} class="relative flex items-center my-2">
           <div class="h-[1px] w-full flex">
             <div class="bg-info" style={"width: #{prediction_bar_percent(@prediction)}%"}></div>
-            <div class="bg-black" style={"width: #{100 - prediction_bar_percent(@prediction)}%"}></div>
+            <div class="bg-base-200" style={"width: #{100 - prediction_bar_percent(@prediction)}%"}></div>
           </div>
-          <span class="absolute left-1/2 -translate-x-1/2 text-[9px] text-base-content/50 font-mono bg-base-100 px-1">
+          <span
+            class="absolute -translate-x-1/2 text-[9px] text-base-content/50 font-mono bg-base-100 px-1"
+            style={"left: #{prediction_bar_percent(@prediction)}%"}
+          >
             {@prediction.predicted_winner} {format_probability(@prediction.winner_probability)}
           </span>
         </div>
