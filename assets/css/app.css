@@ -350,6 +350,20 @@
     @apply text-xs text-primary hover:underline;
   }
 
+  /* Tab Pills */
+  .tab-pill {
+    @apply text-[10px] px-3 py-1.5 font-medium uppercase tracking-wider;
+    @apply bg-base-300/50 text-base-content/60 cursor-pointer transition-all;
+  }
+
+  .tab-pill:hover {
+    @apply bg-base-300 text-base-content/80;
+  }
+
+  .tab-pill.active {
+    @apply bg-primary text-primary-content;
+  }
+
   /* Stats Badges */
   .stat-badge {
     @apply inline-flex items-center gap-1 px-2 py-0.5 bg-base-300 text-xs font-mono;
@@ -1358,33 +1372,7 @@ body {
   @apply text-base-content/40;
 }
 
-/* Bracket View */
-.bracket-view {
-  @apply space-y-6;
-}
-
-.bracket-conference {
-  @apply space-y-4;
-}
-
-.bracket-conf-title {
-  @apply py-3 font-bold text-sm uppercase tracking-wider;
-  @apply border-b border-base-300 text-center;
-}
-
-.bracket-view .bracket-round {
-  @apply space-y-3;
-}
-
-.bracket-view .round-title {
-  @apply text-xs text-base-content/50 uppercase tracking-wider mb-3 text-center;
-}
-
-.bracket-matchups {
-  @apply space-y-3;
-}
-
-/* Matchup Card - ESPN-style card similar to other cards in the app */
+/* Mobile Matchup Card */
 .matchup-card {
   @apply bg-base-200 border border-base-300;
   @apply hover:border-primary/50 transition-colors;
@@ -1456,6 +1444,131 @@ body {
 
 .matchup-prob-value {
   @apply text-xs font-mono w-10 text-right;
+}
+
+/* ESPN-Style Desktop Bracket */
+.bracket-desktop {
+  @apply py-4;
+}
+
+.bracket-wrapper {
+  @apply flex items-stretch gap-0;
+  min-height: 500px;
+}
+
+.bracket-side {
+  @apply flex-1 flex flex-col;
+}
+
+.bracket-left {
+  @apply items-start;
+}
+
+.bracket-right {
+  @apply items-end;
+}
+
+.bracket-round-header {
+  @apply text-xs font-bold uppercase tracking-wider text-base-content/60 mb-4 px-2;
+}
+
+.bracket-left .bracket-round-header {
+  @apply text-left;
+}
+
+.bracket-right .bracket-round-header {
+  @apply text-right;
+}
+
+.bracket-round-col {
+  @apply flex flex-col justify-around flex-1 gap-4;
+}
+
+.bracket-game {
+  @apply bg-base-200 border border-base-300;
+  width: 280px;
+}
+
+.bracket-game:hover {
+  @apply border-primary/50;
+}
+
+.bracket-team-row {
+  @apply flex items-center gap-2 px-3 py-2 border-b border-base-300/50 last:border-b-0;
+}
+
+.bracket-seed {
+  @apply w-5 text-[10px] text-base-content/40 font-mono;
+}
+
+.bracket-team-logo {
+  @apply w-6 h-6 object-contain;
+}
+
+.bracket-team-name {
+  @apply flex-1 text-sm font-medium truncate;
+}
+
+.bracket-prob {
+  @apply flex items-center gap-2;
+}
+
+.bracket-prob-bar {
+  @apply w-16 h-1.5 bg-base-300/50 overflow-hidden;
+}
+
+.bracket-prob-fill {
+  @apply h-full transition-all duration-300;
+}
+
+.bracket-prob-fill.high {
+  @apply bg-success;
+}
+
+.bracket-prob-fill.medium {
+  @apply bg-warning;
+}
+
+.bracket-prob-fill.low {
+  @apply bg-base-content/20;
+}
+
+.bracket-prob-pct {
+  @apply text-[10px] font-mono w-8 text-right;
+}
+
+.bracket-prob-pct.high {
+  @apply text-success;
+}
+
+.bracket-prob-pct.medium {
+  @apply text-warning;
+}
+
+.bracket-prob-pct.low {
+  @apply text-base-content/40;
+}
+
+/* Center Finals */
+.bracket-center {
+  @apply flex items-center justify-center px-6;
+  min-width: 180px;
+}
+
+.bracket-finals {
+  @apply bg-base-200 border-2 border-accent/50 p-4 text-center;
+}
+
+.finals-label {
+  @apply text-[10px] font-bold uppercase tracking-wider text-accent mb-3;
+}
+
+.finals-matchup {
+  @apply flex items-center justify-center gap-4;
+}
+
+.finals-team {
+  @apply flex flex-col items-center gap-1;
 }
 
 /* Footer */
@@ -1536,5 +1649,396 @@ body {
 
   .prob-bars {
     @apply grid-cols-5;
+  }
+}
+
+/* ============================================
+   FULL BRACKET - ALL ROUNDS
+   ============================================ */
+
+/* Mobile Round Selector */
+.round-selector {
+  @apply flex border-b border-base-300 bg-base-200 sticky top-0 z-10;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.round-selector::-webkit-scrollbar {
+  display: none;
+}
+
+.round-tab {
+  @apply flex-1 min-w-0 py-3 px-2 flex flex-col items-center gap-0.5;
+  @apply text-base-content/50 transition-all cursor-pointer;
+  @apply border-b-2 border-transparent;
+  min-width: 80px;
+}
+
+.round-tab:hover {
+  @apply text-base-content/70 bg-base-300/30;
+}
+
+.round-tab.active {
+  @apply text-primary border-primary bg-base-300/50;
+}
+
+.round-tab-num {
+  @apply w-6 h-6 rounded-full bg-base-300 flex items-center justify-center;
+  @apply text-xs font-bold;
+}
+
+.round-tab.active .round-tab-num {
+  @apply bg-primary text-primary-content;
+}
+
+.round-tab-name {
+  @apply text-[10px] font-medium uppercase tracking-wider truncate max-w-full;
+}
+
+/* Round Panels */
+.round-panels {
+  @apply relative;
+}
+
+.round-panel {
+  @apply hidden py-4 space-y-6;
+}
+
+.round-panel.active {
+  @apply block;
+}
+
+/* Conference Sections */
+.conference-section {
+  @apply space-y-3;
+}
+
+.conference-label {
+  @apply text-xs font-bold uppercase tracking-wider text-base-content/60 px-1;
+}
+
+.matchups-list {
+  @apply space-y-3;
+}
+
+/* Finals Section */
+.finals-section {
+  @apply py-8;
+}
+
+.finals-matchup-card {
+  @apply bg-base-200 border-2 border-accent/50 p-6;
+  @apply flex items-center justify-center gap-6;
+}
+
+.finals-team-block {
+  @apply flex flex-col items-center gap-2 flex-1;
+}
+
+.finals-logo {
+  @apply w-16 h-16 object-contain;
+}
+
+.finals-abbrev {
+  @apply text-lg font-bold;
+}
+
+.finals-prob {
+  @apply text-sm font-mono font-bold;
+}
+
+.finals-prob.high {
+  @apply text-success;
+}
+
+.finals-prob.medium {
+  @apply text-warning;
+}
+
+.finals-prob.low {
+  @apply text-base-content/40;
+}
+
+.finals-vs {
+  @apply text-base-content/40 text-sm font-bold uppercase;
+}
+
+/* Bracket Timeline */
+.bracket-timeline {
+  @apply mt-8 pt-6 border-t border-base-300;
+}
+
+.timeline-header {
+  @apply text-xs font-bold uppercase tracking-wider text-base-content/60 mb-4;
+}
+
+.timeline-track {
+  @apply relative pl-6;
+}
+
+.timeline-track::before {
+  content: "";
+  @apply absolute left-2 top-2 bottom-2 w-0.5 bg-base-300;
+}
+
+.timeline-round {
+  @apply relative flex items-start gap-3 pb-4 last:pb-0;
+}
+
+.timeline-dot {
+  @apply absolute left-[-16px] w-3 h-3 rounded-full bg-primary border-2 border-base-100;
+  @apply z-10;
+}
+
+.timeline-info {
+  @apply flex flex-col;
+}
+
+.timeline-round-name {
+  @apply text-sm font-medium;
+}
+
+.timeline-matchup-count {
+  @apply text-[10px] text-base-content/50;
+}
+
+/* Desktop Full Bracket - Full Width Responsive Design */
+.bracket-full {
+  @apply flex items-stretch w-full;
+  min-height: 480px;
+  gap: 4px;
+}
+
+.bracket-conference {
+  @apply flex-1 flex flex-col;
+}
+
+.conference-header {
+  @apply text-[10px] font-bold uppercase tracking-wider text-base-content/50 mb-3;
+}
+
+.bracket-east .conference-header {
+  @apply text-left;
+}
+
+.bracket-west .conference-header {
+  @apply text-right;
+}
+
+.bracket-rounds {
+  @apply flex flex-1 w-full;
+  gap: 4px;
+}
+
+.bracket-east .bracket-rounds {
+  @apply flex-row;
+}
+
+.bracket-west .bracket-rounds {
+  @apply flex-row-reverse;
+}
+
+.bracket-round {
+  @apply flex flex-col flex-1;
+}
+
+.round-label {
+  @apply text-[9px] font-medium uppercase tracking-wider text-base-content/40 mb-2 text-center;
+}
+
+.round-games {
+  @apply flex flex-col justify-around flex-1 gap-3;
+}
+
+/* Desktop Matchup Game - Full Width */
+.desktop-game {
+  @apply bg-base-200 border border-base-300/60 w-full;
+}
+
+.desktop-team-row {
+  @apply flex items-center gap-2 px-2 py-1.5 border-b border-base-300/30 last:border-b-0;
+}
+
+.desktop-team-row.favorite {
+  @apply bg-success/10;
+}
+
+.desktop-seed {
+  @apply w-4 text-[9px] text-base-content/40 font-mono;
+}
+
+.desktop-logo {
+  @apply w-5 h-5 object-contain flex-shrink-0;
+}
+
+.desktop-abbrev {
+  @apply flex-1 text-[11px] font-medium;
+}
+
+.desktop-prob {
+  @apply text-[10px] font-mono tabular-nums;
+}
+
+.desktop-prob.high {
+  @apply text-success;
+}
+
+.desktop-prob.medium {
+  @apply text-warning;
+}
+
+.desktop-prob.low {
+  @apply text-base-content/40;
+}
+
+/* Center Finals - Proportional */
+.bracket-finals-center {
+  @apply flex flex-col items-center justify-center flex-shrink-0;
+  width: 120px;
+}
+
+.finals-trophy {
+  @apply text-3xl mb-2;
+}
+
+.finals-title {
+  @apply text-[9px] font-bold uppercase tracking-wider text-accent mb-3;
+}
+
+.bracket-finals-center .finals-matchup-card {
+  @apply flex-col gap-3 p-3 border-2 border-accent/40 bg-base-200 w-full;
+}
+
+.bracket-finals-center .finals-team-block {
+  @apply flex-col items-center gap-1;
+}
+
+.bracket-finals-center .finals-logo {
+  @apply w-8 h-8;
+}
+
+.bracket-finals-center .finals-abbrev {
+  @apply text-[10px] font-bold;
+}
+
+.bracket-finals-center .finals-prob {
+  @apply text-[9px];
+}
+
+.bracket-finals-center .finals-vs {
+  @apply text-[9px] text-base-content/40;
+}
+
+/* Responsive scaling - expand with screen */
+@media (min-width: 1024px) {
+  .bracket-full {
+    gap: 6px;
+  }
+
+  .bracket-rounds {
+    gap: 6px;
+  }
+
+  .round-games {
+    gap: 4px;
+  }
+
+  .desktop-team-row {
+    @apply px-3 py-2 gap-2;
+  }
+
+  .desktop-seed {
+    @apply text-[10px];
+  }
+
+  .desktop-logo {
+    @apply w-6 h-6;
+  }
+
+  .desktop-abbrev {
+    @apply text-xs;
+  }
+
+  .desktop-prob {
+    @apply text-[11px];
+  }
+
+  .round-label {
+    @apply text-[10px];
+  }
+
+  .bracket-finals-center {
+    width: 140px;
+  }
+
+  .bracket-finals-center .finals-logo {
+    @apply w-10 h-10;
+  }
+
+  .bracket-finals-center .finals-abbrev {
+    @apply text-[11px];
+  }
+
+  .finals-trophy {
+    @apply text-4xl;
+  }
+}
+
+@media (min-width: 1280px) {
+  .bracket-full {
+    gap: 8px;
+  }
+
+  .bracket-rounds {
+    gap: 8px;
+  }
+
+  .round-games {
+    gap: 5px;
+  }
+
+  .desktop-team-row {
+    @apply px-3 py-2.5 gap-3;
+  }
+
+  .desktop-logo {
+    @apply w-7 h-7;
+  }
+
+  .desktop-abbrev {
+    @apply text-sm;
+  }
+
+  .desktop-prob {
+    @apply text-xs;
+  }
+
+  .conference-header {
+    @apply text-xs mb-4;
+  }
+
+  .round-label {
+    @apply text-[11px] mb-3;
+  }
+
+  .bracket-finals-center {
+    width: 160px;
+  }
+
+  .bracket-finals-center .finals-matchup-card {
+    @apply p-4 gap-4;
+  }
+
+  .bracket-finals-center .finals-logo {
+    @apply w-12 h-12;
+  }
+
+  .bracket-finals-center .finals-abbrev {
+    @apply text-xs;
+  }
+
+  .bracket-finals-center .finals-prob {
+    @apply text-[10px];
   }
 }

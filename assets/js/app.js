@@ -60,6 +60,35 @@ Hooks.FavoritePlayers = {
 
 // PlayerSearch hook removed - using phx-debounce on input instead
 
+// BracketRoundSelector hook - handles round tab switching
+Hooks.BracketRoundSelector = {
+  mounted() {
+    const container = this.el;
+    // Support both .round-tab and .tab-pill selectors
+    const tabs = container.querySelectorAll("[data-round]");
+    const panels = container.querySelectorAll(".round-panel");
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const roundNum = tab.dataset.round;
+
+        // Update active tab
+        tabs.forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+
+        // Show corresponding panel
+        panels.forEach((p) => {
+          if (p.dataset.round === roundNum) {
+            p.classList.add("active");
+          } else {
+            p.classList.remove("active");
+          }
+        });
+      });
+    });
+  },
+};
+
 // MobileMenu hook - closes menu on LiveView navigation
 Hooks.MobileMenu = {
   mounted() {
