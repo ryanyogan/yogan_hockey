@@ -102,7 +102,10 @@ if config_env() == :prod do
       ip: {0, 0, 0, 0, 0, 0, 0, 0},
       port: port
     ],
-    secret_key_base: secret_key_base
+    secret_key_base: secret_key_base,
+    # Use :conn to trust Fly.io's x-forwarded-host header for WebSocket origin checks
+    # This is the recommended approach for Fly.io deployments
+    check_origin: :conn
 
   # ## SSL Support
   #

@@ -13,10 +13,6 @@ kill_signal = 'SIGTERM'
 app = ""
 replica = ""
 
-[restart]
-policy = "always"
-retries = 5
-
 [env]
 PHX_HOST = 'yogan-hockey.fly.dev'
 PORT = '8080'
@@ -42,7 +38,23 @@ type = 'connections'
 hard_limit = 1000
 soft_limit = 1000
 
+# HTTP health checks for Bandit adapter
+# The X-Forwarded-Proto header prevents redirect loops
+[[http_service.checks]]
+grace_period = "5s"
+interval = "15s"
+method = "GET"
+path = "/"
+timeout = "5s"
+[http_service.checks.headers]
+X-Forwarded-Proto = "https"
+
 [[vm]]
 memory = '512mb'
 cpu_kind = 'shared'
 cpus = 1
+
+[[restart]]
+policy = "always"
+retries = 5
+processes = ["app", "replica"]

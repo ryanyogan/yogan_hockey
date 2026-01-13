@@ -17,7 +17,11 @@ defmodule YoganHockeyWeb.TeamLive do
       {:ok, team} ->
         basic_team = NHL.get_team(team_id)
         standings = get_team_standings(team_id)
-        completed_game_ids = Games.game_ids_for_team(team_id)
+        completed_game_ids =
+          case Games.game_ids_for_team(team_id) do
+            %MapSet{} = ids -> ids
+            {:error, _} -> MapSet.new()
+          end
         schedule = get_team_schedule(team_id, completed_game_ids)
         injuries = NHL.get_injuries_for_team(team_id)
 
