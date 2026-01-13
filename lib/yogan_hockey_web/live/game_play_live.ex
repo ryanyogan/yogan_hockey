@@ -2,42 +2,76 @@ defmodule YoganHockeyWeb.GamePlayLive do
   @moduledoc """
   Live game play page with ice rink visualization and play-by-play stream.
   Shows countdown for pregame, live data for in-progress games.
+  For historical games not in DB, fetches and saves on demand.
   """
   use YoganHockeyWeb, :live_view
 
+  require Logger
+
   alias YoganHockey.GamePlay.GamePlayServer
+  alias YoganHockey.Games
+  alias YoganHockey.Games.CompletedGame
   alias YoganHockey.NHL
+  alias YoganHockey.NHL.{APIClient, Parsers}
   alias YoganHockeyWeb.SEO
 
   import YoganHockeyWeb.GamePlayComponents
 
   @impl true
   def mount(%{"id" => game_id}, _session, socket) do
-    # First, get basic game info from scoreboard cache
-    game_info = NHL.get_game(game_id)
+    # First, check if game exists in database (historical game)
+    case Games.get_completed_game(game_id) do
+      %CompletedGame{game_data: stored_data} = completed ->
+        # Historical game - load from DB
+        game_data = Games.map_to_game_data(stored_data)
 
-    socket =
-      socket
-      |> assign(:game_id, game_id)
-      |> assign(:game_info, game_info)
-      |> assign(:game_data, nil)
-      |> assign(:play_filter, :all)
-      |> assign(:period_filter, :all)
-      |> assign(:countdown, nil)
-      |> put_seo(game_info)
+        socket =
+          socket
+          |> assign(:game_id, game_id)
+          |> assign(:game_info, nil)
+          |> assign(:game_data, game_data)
+          |> assign(:play_filter, :all)
+          |> assign(:period_filter, :all)
+          |> assign(:countdown, nil)
+          |> assign(:historical, true)
+          |> assign(:fetching_historical, false)
+          |> put_seo_from_completed(completed)
 
-    if connected?(socket) do
-      socket = maybe_start_game_server(socket, game_info)
-      {:ok, socket}
-    else
-      {:ok, socket}
+        {:ok, socket}
+
+      nil ->
+        # Game not in DB - check if it's a completed game we need to fetch
+        game_info = NHL.get_game(game_id)
+
+        socket =
+          socket
+          |> assign(:game_id, game_id)
+          |> assign(:game_info, game_info)
+          |> assign(:game_data, nil)
+          |> assign(:play_filter, :all)
+          |> assign(:period_filter, :all)
+          |> assign(:countdown, nil)
+          |> assign(:historical, false)
+          |> assign(:fetching_historical, false)
+          |> put_seo(game_info)
+
+        if connected?(socket) do
+          socket = maybe_start_game_server(socket, game_info)
+          {:ok, socket}
+        else
+          {:ok, socket}
+        end
     end
   end
 
   # Determine how to handle the game based on its status
   defp maybe_start_game_server(socket, game_info) do
     cond do
-      # Game has started - connect to live updates
+      # Game is completed but not in DB - fetch and save
+      game_is_completed?(game_info) ->
+        fetch_historical_game(socket, game_info)
+
+      # Game is in progress - connect to live updates
       game_has_started?(game_info) ->
         start_live_game(socket, game_info)
 
@@ -50,6 +84,57 @@ defmodule YoganHockeyWeb.GamePlayLive do
         socket
     end
   end
+
+  # Fetch completed game data in background and save to DB
+  defp fetch_historical_game(socket, game_info) do
+    game_id = socket.assigns.game_id
+    pid = self()
+
+    # Start background task to fetch and save
+    Task.Supervisor.start_child(YoganHockey.TaskSupervisor, fn ->
+      result = fetch_and_save_game(game_id)
+      send(pid, {:historical_game_fetched, result})
+    end)
+
+    socket
+    |> assign(:fetching_historical, true)
+    |> assign(:game_info, game_info)
+  end
+
+  # Fetch game data from API and save to database
+  defp fetch_and_save_game(game_id) do
+    with {:ok, summary_data} <- APIClient.get_game_summary(game_id),
+         game_data when not is_nil(game_data) <- Parsers.parse_game_summary(summary_data),
+         {:ok, plays_data} <- APIClient.get_game_plays(game_id) do
+      # Parse full plays from core API
+      plays = Parsers.parse_core_api_plays(plays_data, game_data.home_team, game_data.away_team)
+      game_data = %{game_data | plays: plays}
+
+      # Save to database
+      case Games.save_completed_game(game_data) do
+        {:ok, _} ->
+          Logger.info("Saved historical game #{game_id} with #{length(plays)} plays")
+          {:ok, game_data}
+
+        {:error, reason} ->
+          Logger.error("Failed to save historical game #{game_id}: #{inspect(reason)}")
+          {:ok, game_data}
+      end
+    else
+      nil ->
+        Logger.warning("Failed to parse historical game #{game_id}")
+        {:error, :parse_failed}
+
+      {:error, reason} ->
+        Logger.warning("Failed to fetch historical game #{game_id}: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp game_is_completed?(nil), do: false
+  defp game_is_completed?(%{status: %{state: "post"}}), do: true
+  defp game_is_completed?(%{status: status}) when is_map(status), do: status[:state] == "post"
+  defp game_is_completed?(_), do: false
 
   defp start_pregame_countdown(socket, date_string) do
     # Subscribe to live scores to get notified when game status changes
@@ -98,7 +183,8 @@ defmodule YoganHockeyWeb.GamePlayLive do
 
   @impl true
   def terminate(_reason, socket) do
-    if socket.assigns[:game_id] && socket.assigns[:game_data] do
+    # Only unregister from GamePlayServer for live games (not historical)
+    if socket.assigns[:game_id] && socket.assigns[:game_data] && !socket.assigns[:historical] do
       GamePlayServer.unregister_viewer(socket.assigns.game_id, self())
     end
 
@@ -160,6 +246,22 @@ defmodule YoganHockeyWeb.GamePlayLive do
           end
       end
     end
+  end
+
+  # Historical game data fetched from API
+  def handle_info({:historical_game_fetched, {:ok, game_data}}, socket) do
+    socket =
+      socket
+      |> assign(:game_data, game_data)
+      |> assign(:fetching_historical, false)
+      |> assign(:historical, true)
+
+    {:noreply, socket}
+  end
+
+  def handle_info({:historical_game_fetched, {:error, _reason}}, socket) do
+    # Failed to fetch - show error state
+    {:noreply, assign(socket, :fetching_historical, false)}
   end
 
   # ============================================
@@ -277,6 +379,14 @@ defmodule YoganHockeyWeb.GamePlayLive do
     )
   end
 
+  defp put_seo_from_completed(socket, %CompletedGame{} = completed) do
+    SEO.put_seo(socket,
+      title: "#{completed.away_team_name} @ #{completed.home_team_name}",
+      description: "Final: #{completed.away_team_name} #{completed.away_score} - #{completed.home_team_name} #{completed.home_score}. Play-by-play and game stats.",
+      url: "/nhl/games/#{completed.game_id}"
+    )
+  end
+
   defp filter_plays(plays, :all, :all), do: plays
 
   defp filter_plays(plays, type_filter, period_filter) do
@@ -321,6 +431,7 @@ defmodule YoganHockeyWeb.GamePlayLive do
                 play_filter={@play_filter}
                 period_filter={@period_filter}
                 current_period={@game_data.status.period}
+                plays={@game_data.plays}
               />
             </div>
 
@@ -342,6 +453,29 @@ defmodule YoganHockeyWeb.GamePlayLive do
 
           <div class="text-center text-xs text-base-content/40">
             Updated: {format_datetime(@game_data.last_updated)}
+          </div>
+
+        <% @fetching_historical and @game_info -> %>
+          <%!-- Fetching historical game data --%>
+          <.game_header_loading game_info={@game_info} />
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="lg:col-span-2 space-y-4">
+              <div class="data-card p-12">
+                <div class="flex flex-col items-center justify-center text-center">
+                  <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
+                  <h3 class="text-lg font-bold mb-2">Fetching Game Data</h3>
+                  <p class="text-sm text-base-content/60">Loading play-by-play and statistics...</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <div class="data-card p-8 text-center">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary mb-3"></div>
+                <p class="text-sm text-base-content/60">Loading stats...</p>
+              </div>
+            </div>
           </div>
 
         <% @game_started and @game_info -> %>

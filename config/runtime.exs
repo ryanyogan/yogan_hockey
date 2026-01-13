@@ -32,6 +32,19 @@ if api_key = System.get_env("ANTHROPIC_API_KEY") do
 end
 
 if config_env() == :prod do
+  # Configure SQLite database for production
+  # DATABASE_PATH should point to a file on a persistent Fly.io volume
+  database_path =
+    System.get_env("DATABASE_PATH") ||
+      raise """
+      environment variable DATABASE_PATH is missing.
+      For Fly.io, set this to /mnt/data/yogan_hockey.db
+      """
+
+  config :yogan_hockey, YoganHockey.Repo,
+    database: database_path,
+    pool_size: 5
+
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want

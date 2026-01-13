@@ -7,6 +7,9 @@ defmodule YoganHockey.Application do
 
   @impl true
   def start(_type, _args) do
+    # Run migrations on application start (required for Fly.io with SQLite volumes)
+    YoganHockey.Release.migrate()
+
     # Initialize ETS tables before starting children
     YoganHockey.Cache.init()
 
@@ -15,6 +18,9 @@ defmodule YoganHockey.Application do
         YoganHockeyWeb.Telemetry,
         {DNSCluster, query: Application.get_env(:yogan_hockey, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: YoganHockey.PubSub},
+
+        # SQLite database
+        YoganHockey.Repo,
 
         # Task supervisor for background tasks
         {Task.Supervisor, name: YoganHockey.TaskSupervisor},
@@ -46,7 +52,8 @@ defmodule YoganHockey.Application do
         YoganHockey.NHL.InjuriesServer,
         YoganHockey.DEL2.YoganStatsServer,
         YoganHockey.Playoffs.PredictionServer,
-        YoganHockey.LiveGames.PredictionServer
+        YoganHockey.LiveGames.PredictionServer,
+        YoganHockey.Games.GamePersistenceServer
       ]
     else
       []

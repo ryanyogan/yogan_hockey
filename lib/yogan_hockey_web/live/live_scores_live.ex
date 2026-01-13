@@ -221,7 +221,7 @@ defmodule YoganHockeyWeb.LiveScoresLive do
         <%!-- Footer: Clock + Venue + Injuries --%>
         <div class="mt-3 pt-3 border-t border-base-300 flex justify-between items-center text-xs">
           <div class="flex items-center gap-2">
-            <span class="font-mono text-error">{@game.status.display_clock}</span>
+            <span class="font-mono text-success">{@game.status.display_clock}</span>
             <.link :if={@total_injuries > 0} navigate={~p"/players#injuries"} class="text-[10px] text-error hover:underline">
               Injured ({@total_injuries})
             </.link>

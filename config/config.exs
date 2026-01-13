@@ -9,7 +9,8 @@ import Config
 
 config :yogan_hockey,
   generators: [timestamp_type: :utc_datetime],
-  anthropic_adapter: YoganHockey.HTTP.AnthropicHTTPAdapter
+  anthropic_adapter: YoganHockey.HTTP.AnthropicHTTPAdapter,
+  ecto_repos: [YoganHockey.Repo]
 
 # Configures the endpoint
 config :yogan_hockey, YoganHockeyWeb.Endpoint,

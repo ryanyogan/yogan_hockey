@@ -123,4 +123,14 @@ defmodule YoganHockey.NHL.APIClient do
   def get_game_summary(event_id) do
     http_adapter().get_json("https://site.web.api.espn.com/apis/site/v2/sports/hockey/nhl/summary?event=#{event_id}")
   end
+
+  @doc """
+  Fetches all plays for a game from the core API.
+  This endpoint returns all plays (up to the limit) with full details including coordinates.
+  The default summary endpoint only returns ~100 plays; this endpoint can return 300+.
+  """
+  @spec get_game_plays(String.t(), integer()) :: {:ok, map()} | {:error, term()}
+  def get_game_plays(event_id, limit \\ 400) do
+    http_adapter().get_json("#{@core_url}/events/#{event_id}/competitions/#{event_id}/plays?limit=#{limit}")
+  end
 end

@@ -835,18 +835,37 @@ defmodule YoganHockey.NHL.Parsers do
     |> Enum.filter(&significant_play?/1)
     |> Enum.map(fn play -> parse_single_play(play, home_team, away_team) end)
     |> Enum.reject(&is_nil/1)
-    |> Enum.take(100)
   end
 
   defp parse_game_plays(_, _, _), do: []
 
-  # Filter for significant plays: goals, shots on goal, penalties, hits
+  @doc """
+  Parses plays from the core API plays endpoint response.
+  This endpoint returns all plays with coordinates, not limited to 100.
+  """
+  def parse_core_api_plays(%{"items" => items}, home_team, away_team) when is_list(items) do
+    items
+    |> Enum.filter(&significant_play_core?/1)
+    |> Enum.map(fn play -> parse_single_play(play, home_team, away_team) end)
+    |> Enum.reject(&is_nil/1)
+  end
+
+  def parse_core_api_plays(_, _, _), do: []
+
+  # Filter for significant plays from summary API
   defp significant_play?(%{"type" => %{"id" => type_id}}) do
     # 505 = Goal, 506 = Shot on Goal, 509 = Penalty, 503 = Hit, 502 = Faceoff
     type_id in ["505", "506", "509", "503", "502"]
   end
 
   defp significant_play?(_), do: false
+
+  # Filter for significant plays from core API (uses abbreviation)
+  defp significant_play_core?(%{"type" => %{"abbreviation" => abbr}}) do
+    abbr in ["goal", "shot-on-goal", "penalty", "hit", "faceoff"]
+  end
+
+  defp significant_play_core?(_), do: false
 
   defp parse_single_play(play, home_team, away_team) do
     type = play["type"] || %{}
@@ -855,7 +874,8 @@ defmodule YoganHockey.NHL.Parsers do
     coordinate = play["coordinate"] || %{}
     team = play["team"] || %{}
 
-    team_id = to_string(team["id"] || "")
+    # Extract team_id from either direct "id" field or "$ref" URL
+    team_id = extract_team_id(team)
 
     # Determine team color based on which team made the play
     team_color =
@@ -867,7 +887,7 @@ defmodule YoganHockey.NHL.Parsers do
 
     %{
       id: play["id"] || to_string(:erlang.unique_integer([:positive])),
-      type: play_type_from_id(type["id"]),
+      type: play_type_from_id(type["id"]) || play_type_from_abbr(type["abbreviation"]),
       period: period["number"] || 1,
       time: clock["displayValue"] || "0:00",
       team_id: team_id,
@@ -879,12 +899,30 @@ defmodule YoganHockey.NHL.Parsers do
     }
   end
 
+  # Extract team ID from team object - handles both formats
+  defp extract_team_id(%{"id" => id}), do: to_string(id)
+  defp extract_team_id(%{"$ref" => ref}) when is_binary(ref) do
+    # Extract team ID from URL like ".../teams/13?..."
+    case Regex.run(~r"/teams/(\d+)", ref) do
+      [_, id] -> id
+      _ -> ""
+    end
+  end
+  defp extract_team_id(_), do: ""
+
   defp play_type_from_id("505"), do: :goal
   defp play_type_from_id("506"), do: :shot
   defp play_type_from_id("509"), do: :penalty
   defp play_type_from_id("503"), do: :hit
   defp play_type_from_id("502"), do: :faceoff
-  defp play_type_from_id(_), do: :other
+  defp play_type_from_id(_), do: nil
+
+  defp play_type_from_abbr("goal"), do: :goal
+  defp play_type_from_abbr("shot-on-goal"), do: :shot
+  defp play_type_from_abbr("penalty"), do: :penalty
+  defp play_type_from_abbr("hit"), do: :hit
+  defp play_type_from_abbr("faceoff"), do: :faceoff
+  defp play_type_from_abbr(_), do: :other
 
   # Normalize coordinates to 0-200 x 0-85 NHL rink system
   # ESPN coordinates are relative to center ice

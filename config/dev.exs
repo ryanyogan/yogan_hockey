@@ -76,3 +76,9 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# Configure SQLite database for development
+config :yogan_hockey, YoganHockey.Repo,
+  database: Path.expand("../yogan_hockey_dev.db", Path.dirname(__ENV__.file)),
+  pool_size: 5,
+  show_sensitive_data_on_connection_error: true

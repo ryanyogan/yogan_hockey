@@ -104,7 +104,7 @@ defmodule YoganHockeyWeb.GamePlayComponents do
         <% "in" -> %>
           <div class="flex items-center justify-center gap-2">
             <span class="live-indicator"></span>
-            <span class="text-xs font-bold text-error">
+            <span class="text-xs font-bold text-success">
               {period_label(@status.period)} · {@status.clock}
             </span>
           </div>
@@ -268,8 +268,19 @@ defmodule YoganHockeyWeb.GamePlayComponents do
   attr :play_filter, :atom, required: true
   attr :period_filter, :any, required: true
   attr :current_period, :integer, default: 1
+  attr :plays, :list, default: []
 
   def play_filters(assigns) do
+    # Get periods that actually have plays (ESPN API only returns ~100 plays, so later periods may be missing)
+    periods_with_data =
+      assigns.plays
+      |> Enum.map(& &1[:period])
+      |> Enum.filter(&is_integer/1)
+      |> Enum.uniq()
+      |> Enum.sort()
+
+    assigns = assign(assigns, :periods_with_data, periods_with_data)
+
     ~H"""
     <div class="data-card p-3">
       <div class="flex flex-wrap gap-2 justify-between">
@@ -282,10 +293,10 @@ defmodule YoganHockeyWeb.GamePlayComponents do
           <.filter_button label="Hits" value="hit" active={@play_filter == :hit} event="filter_plays" param="type" />
         </div>
 
-        <%!-- Period filters --%>
+        <%!-- Period filters - only show periods that have plays --%>
         <div class="flex flex-wrap gap-1">
           <.filter_button label="All" value="all" active={@period_filter == :all} event="filter_period" param="period" />
-          <%= for p <- 1..@current_period do %>
+          <%= for p <- @periods_with_data do %>
             <.filter_button label={period_label(p)} value={to_string(p)} active={@period_filter == p} event="filter_period" param="period" />
           <% end %>
         </div>
@@ -543,7 +554,7 @@ defmodule YoganHockeyWeb.GamePlayComponents do
           <div class="mt-1">
             <div class="flex items-center justify-center gap-2">
               <span class="live-indicator"></span>
-              <span class="text-xs font-bold text-error">
+              <span class="text-xs font-bold text-success">
                 {@game_info.status.detail}
               </span>
             </div>

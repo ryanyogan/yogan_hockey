@@ -19,32 +19,32 @@
   default: true;
   prefersdark: true;
   color-scheme: "dark";
-  /* Background: True black for contrast, cards lighter */
-  --color-base-100: oklch(8% 0.005 250);
-  --color-base-200: oklch(14% 0.008 250);
-  --color-base-300: oklch(20% 0.01 250);
-  --color-base-content: oklch(95% 0.005 250);
+  /* Background: True black with strong card contrast */
+  --color-base-100: oklch(10% 0.005 250);
+  --color-base-200: oklch(18% 0.008 250);
+  --color-base-300: oklch(25% 0.01 250);
+  --color-base-content: oklch(97% 0.005 250);
   /* Primary: ESPN Blue */
-  --color-primary: oklch(50% 0.20 250);
+  --color-primary: oklch(55% 0.20 250);
   --color-primary-content: oklch(98% 0.01 250);
   /* Secondary: Steel Gray */
-  --color-secondary: oklch(45% 0.02 250);
+  --color-secondary: oklch(50% 0.02 250);
   --color-secondary-content: oklch(98% 0.01 250);
   /* Accent: Gold */
-  --color-accent: oklch(75% 0.18 85);
+  --color-accent: oklch(78% 0.18 85);
   --color-accent-content: oklch(15% 0.02 85);
   /* Neutral */
-  --color-neutral: oklch(18% 0.01 250);
-  --color-neutral-content: oklch(90% 0.005 250);
-  /* Status colors */
-  --color-info: oklch(60% 0.18 250);
+  --color-neutral: oklch(22% 0.01 250);
+  --color-neutral-content: oklch(92% 0.005 250);
+  /* Status colors - green for live, soft coral for injuries */
+  --color-info: oklch(65% 0.18 250);
   --color-info-content: oklch(98% 0.01 250);
-  --color-success: oklch(65% 0.20 150);
+  --color-success: oklch(70% 0.18 150);
   --color-success-content: oklch(15% 0.02 150);
-  --color-warning: oklch(75% 0.18 85);
+  --color-warning: oklch(78% 0.16 85);
   --color-warning-content: oklch(15% 0.02 85);
-  --color-error: oklch(55% 0.25 25);
-  --color-error-content: oklch(98% 0.01 25);
+  --color-error: oklch(70% 0.15 15);
+  --color-error-content: oklch(98% 0.01 15);
   /* Angular corners */
   --radius-selector: 0.125rem;
   --radius-field: 0.125rem;
@@ -133,7 +133,7 @@
   }
 
   .ticker-game.live {
-    @apply border-l-2 border-l-error;
+    @apply border-l-2 border-l-success;
   }
 
   .ticker-game.final {
@@ -169,7 +169,7 @@
   }
 
   .ticker-status.live {
-    @apply text-error font-medium;
+    @apply text-success font-medium;
   }
 
   /* Data Cards */
@@ -271,7 +271,7 @@
   }
 
   .game-card.live {
-    @apply border-l-2 border-l-error;
+    @apply border-l-2 border-l-success;
   }
 
   .game-card-header {
@@ -315,7 +315,7 @@
   }
 
   .game-status.live {
-    @apply text-error font-medium;
+    @apply text-success font-medium;
   }
 
   /* Team Grid */
@@ -379,12 +379,12 @@
 
   /* Live Indicator */
   .live-indicator {
-    @apply inline-flex items-center gap-1 text-error text-[10px] font-bold uppercase tracking-wider;
+    @apply inline-flex items-center gap-1 text-success text-[10px] font-bold uppercase tracking-wider;
   }
 
   .live-indicator::before {
     content: "";
-    @apply w-1.5 h-1.5 bg-error rounded-full animate-pulse;
+    @apply w-1.5 h-1.5 bg-success rounded-full animate-pulse;
   }
 
   /* Buttons */
@@ -2106,7 +2106,7 @@ body {
 
 .live-indicator::before {
   content: "";
-  @apply w-2 h-2 bg-error rounded-full;
+  @apply w-2 h-2 bg-success rounded-full;
   animation: live-pulse 1.5s ease-in-out infinite;
 }
 

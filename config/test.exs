@@ -25,3 +25,8 @@ config :phoenix, :plug_init_mode, :runtime
 # Enable helpful, but potentially expensive runtime checks
 config :phoenix_live_view,
   enable_expensive_runtime_checks: true
+
+# Configure SQLite database for tests
+config :yogan_hockey, YoganHockey.Repo,
+  database: Path.expand("../yogan_hockey_test.db", Path.dirname(__ENV__.file)),
+  pool: Ecto.Adapters.SQL.Sandbox

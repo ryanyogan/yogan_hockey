@@ -4,6 +4,7 @@ defmodule YoganHockeyWeb.TeamLive do
   """
   use YoganHockeyWeb, :live_view
 
+  alias YoganHockey.Games
   alias YoganHockey.NHL
   alias YoganHockeyWeb.SEO
 
@@ -16,7 +17,8 @@ defmodule YoganHockeyWeb.TeamLive do
       {:ok, team} ->
         basic_team = NHL.get_team(team_id)
         standings = get_team_standings(team_id)
-        schedule = get_team_schedule(team_id)
+        completed_game_ids = Games.game_ids_for_team(team_id)
+        schedule = get_team_schedule(team_id, completed_game_ids)
         injuries = NHL.get_injuries_for_team(team_id)
 
         # Trigger background refresh to update cache with fresh data
@@ -97,10 +99,19 @@ defmodule YoganHockeyWeb.TeamLive do
     |> Enum.find(fn entry -> to_string(entry.team.id) == to_string(team_id) end)
   end
 
-  defp get_team_schedule(team_id) do
+  defp get_team_schedule(team_id, completed_game_ids) do
     case NHL.get_team_schedule(team_id) do
-      {:ok, schedule} -> schedule
-      _ -> %{past_games: [], upcoming_games: []}
+      {:ok, schedule} ->
+        # Mark past games with has_data flag
+        past_games =
+          Enum.map(schedule.past_games, fn game ->
+            Map.put(game, :has_data, MapSet.member?(completed_game_ids, to_string(game.id)))
+          end)
+
+        %{schedule | past_games: past_games}
+
+      _ ->
+        %{past_games: [], upcoming_games: []}
     end
   end
 
@@ -229,13 +240,17 @@ defmodule YoganHockeyWeb.TeamLive do
             </div>
           </div>
 
-          <%!-- Past Games --%>
+          <%!-- Past Games - All clickable, data fetched on demand if needed --%>
           <div :if={@schedule.past_games != []} class="data-card">
             <div class="data-card-header">
               <span class="data-card-title">Recent Results</span>
             </div>
             <div class="divide-y divide-base-300/50">
-              <div :for={game <- Enum.take(@schedule.past_games, 15)} class="px-3 py-2 flex items-center justify-between">
+              <.link
+                :for={game <- Enum.take(@schedule.past_games, 15)}
+                navigate={~p"/nhl/games/#{game.id}"}
+                class="px-3 py-2 flex items-center justify-between hover:bg-base-300/30 transition-colors cursor-pointer"
+              >
                 <div class="flex items-center gap-3">
                   <span class="text-xs text-base-content/50 w-36 shrink-0">
                     {format_game_datetime(game.date)}
@@ -248,8 +263,9 @@ defmodule YoganHockeyWeb.TeamLive do
                 <div class="flex items-center gap-2 text-sm font-mono">
                   <span class={result_class(game)}>{result_text(game)}</span>
                   <span>{game.our_score}-{game.opponent_score}</span>
+                  <.icon name="hero-chevron-right" class="w-4 h-4 text-base-content/30" />
                 </div>
-              </div>
+              </.link>
             </div>
           </div>
 

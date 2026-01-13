@@ -171,7 +171,7 @@ defmodule YoganHockeyWeb.ScoreboardComponents do
         </div>
         <div class="game-status flex justify-between items-center">
           <div class="flex items-center gap-2">
-            <span :if={@game.status.state == "in"} class="font-mono text-error">
+            <span :if={@game.status.state == "in"} class="font-mono text-success">
               {period_display(@game.status.period)} {@game.status.display_clock || ""}
             </span>
             <span :if={@total_injuries > 0} class="text-[10px] text-error">

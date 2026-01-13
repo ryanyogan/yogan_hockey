@@ -10,6 +10,7 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
   require Logger
 
   alias YoganHockey.Cache
+  alias YoganHockey.Games
   alias YoganHockey.NHL.APIClient
   alias YoganHockey.NHL.Parsers
 
@@ -259,6 +260,8 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
 
           # Check if game has ended
           if game_completed?(game_data) do
+            # Save completed game to database
+            Games.save_completed_game(game_data)
             :completed
           else
             :in_progress

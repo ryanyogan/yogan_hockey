@@ -12,6 +12,11 @@ kill_signal = 'SIGTERM'
 [env]
 PHX_HOST = 'yogan-hockey.fly.dev'
 PORT = '8080'
+DATABASE_PATH = '/mnt/data/yogan_hockey.db'
+
+[mounts]
+source = 'yogan_data'
+destination = '/mnt/data'
 
 [http_service]
 internal_port = 8080

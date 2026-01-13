@@ -116,6 +116,11 @@ defmodule YoganHockeyWeb.DashboardLive do
     {:noreply, assign(socket, :injuries, injuries)}
   end
 
+  # Ignore team schedule updates from yogan:stats - not used on dashboard
+  def handle_info({:team_schedule_updated, _schedule}, socket) do
+    {:noreply, socket}
+  end
+
   defp build_injury_counts do
     NHL.list_injuries()
     |> Enum.group_by(& &1.team_id)
