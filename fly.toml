@@ -4,19 +4,30 @@
 #
 
 app = 'yogan-hockey'
-primary_region = 'ord'
+primary_region = 'dfw'
 kill_signal = 'SIGTERM'
 
 [build]
+
+[processes]
+app = ""
+replica = ""
+
+[restart]
+policy = "always"
+retries = 5
 
 [env]
 PHX_HOST = 'yogan-hockey.fly.dev'
 PORT = '8080'
 DATABASE_PATH = '/mnt/data/yogan_hockey.db'
+PRIMARY_REGION = 'dfw'
+# Libcluster uses FLY_APP_NAME for DNSPoll strategy (configured in runtime.exs)
 
 [mounts]
 source = 'yogan_data'
 destination = '/mnt/data'
+processes = ['app']
 
 [http_service]
 internal_port = 8080
@@ -24,7 +35,7 @@ force_https = true
 auto_stop_machines = "off"
 auto_start_machines = true
 min_machines_running = 1
-processes = ['app']
+processes = ['app', 'replica']
 
 [http_service.concurrency]
 type = 'connections'
@@ -35,4 +46,3 @@ soft_limit = 1000
 memory = '512mb'
 cpu_kind = 'shared'
 cpus = 1
-memory_mb = 512

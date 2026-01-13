@@ -13,6 +13,7 @@ defmodule YoganHockey.LiveGames.PredictionServer do
   require Logger
 
   alias YoganHockey.{Cache, Anthropic}
+  alias YoganHockey.Cluster.Primary
 
   @pubsub YoganHockey.PubSub
   @predictions_topic "live_games:predictions"
@@ -46,17 +47,44 @@ defmodule YoganHockey.LiveGames.PredictionServer do
   @doc """
   Requests prediction generation for the given games.
   Used when a user visits the live scores page.
+  Forwards to primary node if called from a replica.
   """
   @spec ensure_predictions(list()) :: :ok
   def ensure_predictions(games) do
+    if Primary.primary?() do
+      GenServer.cast(__MODULE__, {:ensure_predictions, games})
+    else
+      # Forward to primary via RPC (cast, don't wait for response)
+      Primary.cast_to_primary(__MODULE__, :do_ensure_predictions, [games])
+    end
+
+    :ok
+  end
+
+  @doc false
+  # Called via RPC from replicas
+  def do_ensure_predictions(games) do
     GenServer.cast(__MODULE__, {:ensure_predictions, games})
   end
 
   @doc """
   Forces regeneration of a prediction for a specific game.
+  Forwards to primary node if called from a replica.
   """
   @spec refresh_prediction(String.t(), map()) :: :ok
   def refresh_prediction(game_id, game) do
+    if Primary.primary?() do
+      GenServer.cast(__MODULE__, {:refresh_prediction, game_id, game})
+    else
+      Primary.cast_to_primary(__MODULE__, :do_refresh_prediction, [game_id, game])
+    end
+
+    :ok
+  end
+
+  @doc false
+  # Called via RPC from replicas
+  def do_refresh_prediction(game_id, game) do
     GenServer.cast(__MODULE__, {:refresh_prediction, game_id, game})
   end
 

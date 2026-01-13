@@ -4,6 +4,12 @@ defmodule YoganHockey.Games do
 
   Provides functions to save and retrieve completed NHL games from the database.
   Game data is stored as JSON for flexibility with the complex nested structure.
+
+  ## Distributed Architecture
+
+  In a multi-region deployment:
+  - Read operations execute locally (or via RPC if Repo not available)
+  - Write operations are forwarded to the primary region via RPC
   """
 
   import Ecto.Query, warn: false
@@ -11,13 +17,25 @@ defmodule YoganHockey.Games do
 
   alias YoganHockey.Repo
   alias YoganHockey.Games.CompletedGame
+  alias YoganHockey.Cluster.Primary
 
   @doc """
   Gets a completed game by its ID.
 
   Returns nil if the game doesn't exist.
+  In replica regions, forwards to primary via RPC.
   """
   def get_completed_game(game_id) do
+    if Primary.primary?() do
+      Repo.get(CompletedGame, to_string(game_id))
+    else
+      Primary.on_primary(__MODULE__, :do_get_completed_game, [game_id])
+    end
+  end
+
+  @doc false
+  # Internal function called via RPC from replica nodes
+  def do_get_completed_game(game_id) do
     Repo.get(CompletedGame, to_string(game_id))
   end
 
@@ -25,8 +43,15 @@ defmodule YoganHockey.Games do
   Saves completed game data to the database.
 
   If a game with the same ID already exists, it will be replaced.
+  In replica regions, forwards to primary via RPC.
   """
   def save_completed_game(game_data) when is_map(game_data) do
+    Primary.on_primary(__MODULE__, :do_save_completed_game, [game_data])
+  end
+
+  @doc false
+  # Internal function that actually writes to DB (only called on primary)
+  def do_save_completed_game(game_data) when is_map(game_data) do
     attrs = %{
       game_id: to_string(game_data.game_id),
       home_team_id: to_string(game_data.home_team.id),
@@ -59,8 +84,19 @@ defmodule YoganHockey.Games do
   Returns a MapSet of game IDs where the given team played.
 
   Used to determine which past games in a team's schedule have data available.
+  In replica regions, forwards to primary via RPC.
   """
   def game_ids_for_team(team_id) do
+    if Primary.primary?() do
+      do_game_ids_for_team(team_id)
+    else
+      Primary.on_primary(__MODULE__, :do_game_ids_for_team, [team_id])
+    end
+  end
+
+  @doc false
+  # Internal function called via RPC from replica nodes
+  def do_game_ids_for_team(team_id) do
     team_id_str = to_string(team_id)
 
     CompletedGame
@@ -72,8 +108,18 @@ defmodule YoganHockey.Games do
 
   @doc """
   Returns the count of completed games in the database.
+  In replica regions, forwards to primary via RPC.
   """
   def count_completed_games do
+    if Primary.primary?() do
+      Repo.aggregate(CompletedGame, :count)
+    else
+      Primary.on_primary(__MODULE__, :do_count_completed_games, [])
+    end
+  end
+
+  @doc false
+  def do_count_completed_games do
     Repo.aggregate(CompletedGame, :count)
   end
 

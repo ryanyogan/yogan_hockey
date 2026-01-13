@@ -83,7 +83,19 @@ defmodule YoganHockeyWeb.ScoreboardComponents do
         "Final"
 
       true ->
-        game.status.detail || ""
+        extract_time(game.status.detail)
+    end
+  end
+
+  # Extracts just the time portion from a date/time string like "Mon 7:30 PM ET"
+  defp extract_time(nil), do: ""
+  defp extract_time(""), do: ""
+
+  defp extract_time(detail) do
+    # Match time patterns like "7:30 PM", "10:00 AM ET", etc.
+    case Regex.run(~r/(\d{1,2}:\d{2}\s*[AP]M(?:\s*[A-Z]{2,3})?)/, detail) do
+      [_, time] -> time
+      _ -> detail
     end
   end
 

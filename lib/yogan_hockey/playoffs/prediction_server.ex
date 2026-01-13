@@ -25,9 +25,13 @@ defmodule YoganHockey.Playoffs.PredictionServer do
 
   @doc """
   Returns true if predictions are currently being generated.
+  Returns false if the server isn't running (e.g., on replica nodes).
   """
   def generating? do
-    GenServer.call(__MODULE__, :generating?)
+    case GenServer.whereis(__MODULE__) do
+      nil -> false
+      pid when is_pid(pid) -> GenServer.call(__MODULE__, :generating?)
+    end
   end
 
   @doc """

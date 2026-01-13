@@ -48,18 +48,25 @@ defmodule YoganHockey.HTTP.MockAnthropicAdapter do
 
   @impl true
   def chat_completion(_messages, _opts \\ []) do
-    Agent.get_and_update(__MODULE__, fn state ->
-      new_count = state.call_count + 1
+    case Process.whereis(__MODULE__) do
+      nil ->
+        # Mock adapter not running - return error gracefully
+        {:error, :mock_not_running}
 
-      case state.responses do
-        [] ->
-          # Return a default mock response if no expectations set
-          {default_response(), %{state | call_count: new_count}}
+      _pid ->
+        Agent.get_and_update(__MODULE__, fn state ->
+          new_count = state.call_count + 1
 
-        [response | rest] ->
-          {response, %{state | responses: rest, call_count: new_count}}
-      end
-    end)
+          case state.responses do
+            [] ->
+              # Return a default mock response if no expectations set
+              {default_response(), %{state | call_count: new_count}}
+
+            [response | rest] ->
+              {response, %{state | responses: rest, call_count: new_count}}
+          end
+        end)
+    end
   end
 
   defp default_response do

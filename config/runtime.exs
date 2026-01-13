@@ -32,18 +32,50 @@ if api_key = System.get_env("ANTHROPIC_API_KEY") do
 end
 
 if config_env() == :prod do
-  # Configure SQLite database for production
-  # DATABASE_PATH should point to a file on a persistent Fly.io volume
-  database_path =
-    System.get_env("DATABASE_PATH") ||
-      raise """
-      environment variable DATABASE_PATH is missing.
-      For Fly.io, set this to /mnt/data/yogan_hockey.db
-      """
+  # Configure libcluster for Fly.io distributed clustering
+  # Uses DNSPoll strategy to discover nodes via Fly's internal DNS
+  app_name = System.get_env("FLY_APP_NAME")
 
-  config :yogan_hockey, YoganHockey.Repo,
-    database: database_path,
-    pool_size: 5
+  if app_name do
+    config :libcluster,
+      topologies: [
+        fly6pn: [
+          strategy: Cluster.Strategy.DNSPoll,
+          config: [
+            polling_interval: 5_000,
+            query: "#{app_name}.internal",
+            node_basename: app_name
+          ]
+        ]
+      ]
+  end
+
+  # Configure SQLite database for production
+  # Only the primary region (ord) has the SQLite volume mounted
+  # Replica regions use RPC to forward database operations to primary
+  primary_region = System.get_env("PRIMARY_REGION", "ord")
+  current_region = System.get_env("FLY_REGION")
+
+  if current_region == primary_region do
+    # Primary region - use real SQLite database
+    database_path =
+      System.get_env("DATABASE_PATH") ||
+        raise """
+        environment variable DATABASE_PATH is missing.
+        For Fly.io primary region, set this to /mnt/data/yogan_hockey.db
+        """
+
+    config :yogan_hockey, YoganHockey.Repo,
+      database: database_path,
+      pool_size: 5
+  else
+    # Replica regions - Repo won't be started (see application.ex)
+    # All database operations are forwarded to primary via RPC
+    # This config is just a fallback in case Repo is accessed directly
+    config :yogan_hockey, YoganHockey.Repo,
+      database: ":memory:",
+      pool_size: 1
+  end
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
@@ -59,8 +91,6 @@ if config_env() == :prod do
 
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
-
-  config :yogan_hockey, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :yogan_hockey, YoganHockeyWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],

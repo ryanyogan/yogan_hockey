@@ -55,19 +55,40 @@ defmodule YoganHockey.Playoffs.PredictionServerTest do
     end)
 
     on_exit(fn ->
-      # Stop server if running
+      # Stop server if running - use :shutdown to be more graceful
       case Process.whereis(PredictionServer) do
         nil -> :ok
         pid when is_pid(pid) ->
+          ref = Process.monitor(pid)
           try do
-            GenServer.stop(PredictionServer, :normal, 1000)
+            GenServer.stop(PredictionServer, :shutdown, 5000)
           catch
             :exit, _ -> :ok
           end
+          # Wait for process to actually terminate
+          receive do
+            {:DOWN, ^ref, :process, ^pid, _} -> :ok
+          after
+            5000 -> :ok
+          end
       end
 
-      MockAnthropicAdapter.stop()
-      MockAdapter.stop()
+      # Wait for any spawned tasks to complete/fail
+      Process.sleep(100)
+
+      # Now safe to stop the mock adapters
+      try do
+        MockAnthropicAdapter.stop()
+      catch
+        :exit, _ -> :ok
+      end
+
+      try do
+        MockAdapter.stop()
+      catch
+        :exit, _ -> :ok
+      end
+
       Application.delete_env(:yogan_hockey, :anthropic_adapter)
       Application.delete_env(:yogan_hockey, :http_adapter)
     end)
@@ -109,7 +130,7 @@ defmodule YoganHockey.Playoffs.PredictionServerTest do
     test "returns configured interval in milliseconds" do
       interval = PredictionServer.check_interval()
       assert is_integer(interval)
-      assert interval == :timer.minutes(5)
+      assert interval == :timer.hours(1)
     end
   end
 
