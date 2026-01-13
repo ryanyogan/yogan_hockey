@@ -14,8 +14,8 @@ defmodule YoganHockey.Playoffs.PredictionServer do
 
   alias YoganHockey.{Playoffs, Cache}
 
-  # Check every 5 minutes for missing predictions
-  @check_interval :timer.minutes(5)
+  # Check every hour for missing predictions
+  @check_interval :timer.hours(1)
 
   # --- Client API ---
 

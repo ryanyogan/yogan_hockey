@@ -50,7 +50,7 @@ defmodule YoganHockey.NHL.Parsers do
       home_team: parse_competitor(home),
       away_team: parse_competitor(away),
       venue: parse_venue(competition["venue"]),
-      broadcasts: parse_broadcasts(competition["broadcasts"])
+      broadcasts: parse_broadcasts(competition["broadcasts"] || competition["geoBroadcasts"])
     }
   end
 
@@ -92,8 +92,17 @@ defmodule YoganHockey.NHL.Parsers do
 
   defp parse_broadcasts(broadcasts) when is_list(broadcasts) do
     Enum.flat_map(broadcasts, fn b ->
-      b["names"] || []
+      # Handle both "names" (scoreboard) and "market"/"media" (schedule) formats
+      cond do
+        is_list(b["names"]) -> b["names"]
+        is_map(b["media"]) -> [b["media"]["shortName"] || b["media"]["name"]]
+        is_binary(b["name"]) -> [b["name"]]
+        true -> []
+      end
     end)
+    |> Enum.filter(&is_binary/1)
+    |> Enum.reject(&String.contains?(&1, "FanDuel SN"))
+    |> Enum.uniq()
   end
 
   # --- Teams Parsing ---
@@ -348,6 +357,7 @@ defmodule YoganHockey.NHL.Parsers do
       our_score: parse_score(our_team["score"]),
       opponent_score: parse_score(opponent["score"]),
       winner: our_team["winner"],
+      broadcasts: parse_broadcasts(competition["broadcasts"] || competition["geoBroadcasts"]),
       opponent: %{
         id: opponent_team["id"],
         name: opponent_team["displayName"] || opponent_team["name"],

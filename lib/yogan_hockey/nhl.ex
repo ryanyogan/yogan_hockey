@@ -204,6 +204,24 @@ defmodule YoganHockey.NHL do
     end
   end
 
+  @doc """
+  Force refreshes a team's schedule from the API, bypassing cache.
+  """
+  @spec refresh_team_schedule(String.t() | integer()) :: {:ok, map()} | {:error, term()}
+  def refresh_team_schedule(team_id) do
+    cache_key = {:team_schedule, to_string(team_id)}
+
+    case APIClient.get_team_schedule(team_id) do
+      {:ok, data} ->
+        schedule = Parsers.parse_team_schedule(data)
+        Cache.put(:nhl_team_stats, cache_key, schedule)
+        {:ok, schedule}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   # --- Players ---
 
   @doc """

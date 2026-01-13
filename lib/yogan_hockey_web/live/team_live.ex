@@ -81,6 +81,14 @@ defmodule YoganHockeyWeb.TeamLive do
         {:error, _reason} ->
           :ok
       end
+
+      case NHL.refresh_team_schedule(team_id) do
+        {:ok, schedule} ->
+          send(pid, {:schedule_refreshed, schedule})
+
+        {:error, _reason} ->
+          :ok
+      end
     end)
   end
 
@@ -100,6 +108,12 @@ defmodule YoganHockeyWeb.TeamLive do
   def handle_info({:team_refreshed, team}, socket) do
     # Update the team data with fresh data from background refresh
     {:noreply, assign(socket, :team, team)}
+  end
+
+  @impl true
+  def handle_info({:schedule_refreshed, schedule}, socket) do
+    # Update the schedule with fresh data from background refresh
+    {:noreply, assign(socket, :schedule, schedule)}
   end
 
   @impl true
@@ -200,18 +214,16 @@ defmodule YoganHockeyWeb.TeamLive do
             <div class="divide-y divide-base-300/50">
               <div :for={game <- Enum.take(@schedule.upcoming_games, 10)} class="px-3 py-2 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                  <div class="text-xs text-base-content/50 w-16">
-                    {format_game_date(game.date)}
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <img :if={game.opponent.logo} src={game.opponent.logo} class="w-5 h-5 object-contain" />
-                    <span class="text-sm font-medium">
-                      {if game.is_home, do: "vs", else: "@"} {game.opponent.abbreviation}
-                    </span>
-                  </div>
+                  <span class="text-xs text-base-content/50 w-36 shrink-0">
+                    {format_game_datetime(game.date)}
+                  </span>
+                  <img :if={game.opponent.logo} src={game.opponent.logo} class="w-5 h-5 shrink-0 object-contain" />
+                  <span class="text-sm font-medium">
+                    {if game.is_home, do: "vs", else: "@"} {game.opponent.abbreviation}
+                  </span>
                 </div>
                 <div class="text-xs text-base-content/50">
-                  {game.date_display}
+                  {if Map.get(game, :broadcasts, []) != [], do: Enum.join(game.broadcasts, ", "), else: game.date_display}
                 </div>
               </div>
             </div>
@@ -225,15 +237,13 @@ defmodule YoganHockeyWeb.TeamLive do
             <div class="divide-y divide-base-300/50">
               <div :for={game <- Enum.take(@schedule.past_games, 15)} class="px-3 py-2 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                  <div class="text-xs text-base-content/50 w-16">
-                    {format_game_date(game.date)}
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <img :if={game.opponent.logo} src={game.opponent.logo} class="w-5 h-5 object-contain" />
-                    <span class="text-sm font-medium">
-                      {if game.is_home, do: "vs", else: "@"} {game.opponent.abbreviation}
-                    </span>
-                  </div>
+                  <span class="text-xs text-base-content/50 w-36 shrink-0">
+                    {format_game_datetime(game.date)}
+                  </span>
+                  <img :if={game.opponent.logo} src={game.opponent.logo} class="w-5 h-5 shrink-0 object-contain" />
+                  <span class="text-sm font-medium">
+                    {if game.is_home, do: "vs", else: "@"} {game.opponent.abbreviation}
+                  </span>
                 </div>
                 <div class="flex items-center gap-2 text-sm font-mono">
                   <span class={result_class(game)}>{result_text(game)}</span>
@@ -346,13 +356,6 @@ defmodule YoganHockeyWeb.TeamLive do
           <% end %>
         </div>
 
-        <%!-- Next Game --%>
-        <div :if={@team.next_event} class="data-card p-4">
-          <div class="text-[10px] uppercase tracking-wider text-base-content/50 mb-2">Next Game</div>
-          <div class="font-bold">{@team.next_event.name}</div>
-          <div class="text-sm text-base-content/60">{format_event_date(@team.next_event.date)}</div>
-        </div>
-
         <%!-- Back Link --%>
         <.link navigate={~p"/nhl"} class="inline-flex items-center gap-1 text-sm text-primary hover:underline">
           <.icon name="hero-arrow-left" class="w-4 h-4" />
@@ -371,14 +374,6 @@ defmodule YoganHockeyWeb.TeamLive do
     """
   end
 
-  defp format_event_date(nil), do: ""
-  defp format_event_date(date_string) when is_binary(date_string) do
-    case DateTime.from_iso8601(date_string) do
-      {:ok, datetime, _} -> Calendar.strftime(datetime, "%A, %B %d at %I:%M %p")
-      _ -> date_string
-    end
-  end
-
   defp sort_roster(roster) when is_list(roster) do
     Enum.sort_by(roster, fn player ->
       jersey = player.jersey || "99"
@@ -388,11 +383,40 @@ defmodule YoganHockeyWeb.TeamLive do
   defp sort_roster(_), do: []
 
   # Schedule helpers
-  defp format_game_date(nil), do: ""
-  defp format_game_date(date_string) when is_binary(date_string) do
-    case DateTime.from_iso8601(date_string) do
-      {:ok, datetime, _} -> Calendar.strftime(datetime, "%b %d")
+  defp format_game_datetime(nil), do: ""
+  defp format_game_datetime(date_string) when is_binary(date_string) do
+    case parse_datetime_est(date_string) do
+      {:ok, datetime} -> Timex.format!(datetime, "%-m/%-d, %-I:%M %p", :strftime)
       _ -> date_string
+    end
+  end
+
+  # Parse UTC date string and convert to Eastern time
+  defp parse_datetime_est(date_string) do
+    with {:ok, utc_dt} <- parse_utc_datetime(date_string),
+         {:ok, est_dt} <- Timex.Timezone.convert(utc_dt, "America/New_York") |> wrap_ok() do
+      {:ok, est_dt}
+    else
+      _ -> :error
+    end
+  end
+
+  defp wrap_ok(%DateTime{} = dt), do: {:ok, dt}
+  defp wrap_ok(_), do: :error
+
+  # Handle dates that may be missing seconds (e.g., "2026-01-17T02:00Z")
+  defp parse_utc_datetime(date_string) do
+    case DateTime.from_iso8601(date_string) do
+      {:ok, dt, _} ->
+        {:ok, dt}
+
+      _ ->
+        fixed = Regex.replace(~r/T(\d{2}):(\d{2})Z$/, date_string, "T\\1:\\2:00Z")
+
+        case DateTime.from_iso8601(fixed) do
+          {:ok, dt, _} -> {:ok, dt}
+          _ -> :error
+        end
     end
   end
 
