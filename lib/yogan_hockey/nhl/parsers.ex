@@ -664,9 +664,17 @@ defmodule YoganHockey.NHL.Parsers do
     competition = List.first(competitions) || %{}
     plays = data["plays"] || []
 
-    # Parse teams from boxscore
+    # Parse teams from boxscore (stats)
     teams = boxscore["teams"] || []
     {home_team, away_team} = parse_boxscore_teams(teams)
+
+    # Get scores from competitors (boxscore teams don't have scores)
+    competitors = competition["competitors"] || []
+    scores = extract_competitor_scores(competitors)
+
+    # Merge scores into team data
+    home_team = Map.put(home_team, :score, scores[:home] || 0)
+    away_team = Map.put(away_team, :score, scores[:away] || 0)
 
     %{
       game_id: header["id"] || data["id"],
@@ -704,6 +712,31 @@ defmodule YoganHockey.NHL.Parsers do
 
   defp parse_boxscore_teams(_), do: {%{}, %{}}
 
+  # Extract scores from header competitors (boxscore teams don't include scores)
+  defp extract_competitor_scores(competitors) when is_list(competitors) do
+    Enum.reduce(competitors, %{}, fn comp, acc ->
+      home_away = comp["homeAway"]
+      score = parse_competitor_score(comp["score"])
+
+      case home_away do
+        "home" -> Map.put(acc, :home, score)
+        "away" -> Map.put(acc, :away, score)
+        _ -> acc
+      end
+    end)
+  end
+
+  defp extract_competitor_scores(_), do: %{}
+
+  defp parse_competitor_score(score) when is_integer(score), do: score
+  defp parse_competitor_score(score) when is_binary(score) do
+    case Integer.parse(score) do
+      {i, _} -> i
+      :error -> 0
+    end
+  end
+  defp parse_competitor_score(_), do: 0
+
   defp parse_boxscore_team(team) do
     team_info = team["team"] || %{}
     stats = team["statistics"] || []
@@ -714,15 +747,38 @@ defmodule YoganHockey.NHL.Parsers do
       abbreviation: team_info["abbreviation"] || "",
       logo: team_info["logo"] || get_logo_href(team_info["logos"]),
       color: team_info["color"] || "333333",
-      score: parse_stat_value(team["score"]) || 0,
-      shots: get_team_stat(stats, "blockedShots") || 0,
+      score: parse_boxscore_score(team["score"]) || 0,
+      shots: get_team_stat(stats, "shotsTotal") || get_team_stat(stats, "shots") || 0,
+      blocked: get_team_stat(stats, "blockedShots") || get_team_stat(stats, "blocked") || 0,
       hits: get_team_stat(stats, "hits") || 0,
       faceoff_pct: get_team_stat(stats, "faceOffWinPercentage"),
       takeaways: get_team_stat(stats, "takeaways") || 0,
       giveaways: get_team_stat(stats, "giveaways") || 0,
+      penalty_minutes: get_team_stat(stats, "penaltyMinutes") || get_team_stat(stats, "pim") || 0,
+      powerplay_goals: get_team_stat(stats, "powerPlayGoals"),
+      powerplay_opportunities: get_team_stat(stats, "powerPlayOpportunities"),
       power_play: get_power_play_stat(stats)
     }
   end
+
+  # Parse score from various formats ESPN uses
+  defp parse_boxscore_score(nil), do: nil
+  defp parse_boxscore_score(s) when is_integer(s), do: s
+  defp parse_boxscore_score(s) when is_float(s), do: trunc(s)
+  defp parse_boxscore_score(%{"value" => v}) when is_number(v), do: trunc(v)
+  defp parse_boxscore_score(%{"displayValue" => v}) when is_binary(v) do
+    case Integer.parse(v) do
+      {i, _} -> i
+      :error -> nil
+    end
+  end
+  defp parse_boxscore_score(s) when is_binary(s) do
+    case Integer.parse(s) do
+      {i, _} -> i
+      :error -> nil
+    end
+  end
+  defp parse_boxscore_score(_), do: nil
 
   defp get_team_stat(stats, name) when is_list(stats) do
     case Enum.find(stats, fn s -> s["name"] == name end) do

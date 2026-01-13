@@ -70,25 +70,25 @@ defmodule YoganHockeyWeb.GamePlayComponents do
       <%!-- Quick Stats Row --%>
       <div class="flex justify-center gap-6 sm:gap-12 mt-4 pt-4 border-t border-base-300/50 text-xs">
         <div class="text-center">
-          <div class="font-mono font-bold">{@away_team.shots || 0}</div>
+          <div class="font-mono font-bold">{Map.get(@away_team, :shots) || 0}</div>
           <div class="text-base-content/50">SOG</div>
         </div>
         <div class="text-center">
-          <div class="font-mono font-bold">{@home_team.shots || 0}</div>
+          <div class="font-mono font-bold">{Map.get(@home_team, :shots) || 0}</div>
         </div>
         <div class="text-center">
-          <div class="font-mono font-bold">{@away_team.hits || 0}</div>
+          <div class="font-mono font-bold">{Map.get(@away_team, :hits) || 0}</div>
           <div class="text-base-content/50">HITS</div>
         </div>
         <div class="text-center">
-          <div class="font-mono font-bold">{@home_team.hits || 0}</div>
+          <div class="font-mono font-bold">{Map.get(@home_team, :hits) || 0}</div>
         </div>
         <div class="text-center">
-          <div class="font-mono font-bold">{@away_team.faceoff_pct || "—"}</div>
+          <div class="font-mono font-bold">{Map.get(@away_team, :faceoff_pct) || "—"}</div>
           <div class="text-base-content/50">FO%</div>
         </div>
         <div class="text-center">
-          <div class="font-mono font-bold">{@home_team.faceoff_pct || "—"}</div>
+          <div class="font-mono font-bold">{Map.get(@home_team, :faceoff_pct) || "—"}</div>
         </div>
       </div>
     </div>
@@ -326,17 +326,22 @@ defmodule YoganHockeyWeb.GamePlayComponents do
       </div>
 
       <div class="space-y-2">
-        <.stat_row label="Shots" away={@away_team.shots || 0} home={@home_team.shots || 0} />
-        <.stat_row label="Hits" away={@away_team.hits || 0} home={@home_team.hits || 0} />
-        <.stat_row label="Blocked" away={@away_team.blocked || 0} home={@home_team.blocked || 0} />
-        <.stat_row label="Giveaways" away={@away_team.giveaways || 0} home={@home_team.giveaways || 0} />
-        <.stat_row label="Takeaways" away={@away_team.takeaways || 0} home={@home_team.takeaways || 0} />
-        <.stat_row label="PIM" away={@away_team.penalty_minutes || 0} home={@home_team.penalty_minutes || 0} />
+        <.stat_row label="Shots" away={get_stat(@away_team, :shots)} home={get_stat(@home_team, :shots)} />
+        <.stat_row label="Hits" away={get_stat(@away_team, :hits)} home={get_stat(@home_team, :hits)} />
+        <.stat_row label="Blocked" away={get_stat(@away_team, :blocked)} home={get_stat(@home_team, :blocked)} />
+        <.stat_row label="Giveaways" away={get_stat(@away_team, :giveaways)} home={get_stat(@home_team, :giveaways)} />
+        <.stat_row label="Takeaways" away={get_stat(@away_team, :takeaways)} home={get_stat(@home_team, :takeaways)} />
+        <.stat_row label="PIM" away={get_stat(@away_team, :penalty_minutes)} home={get_stat(@home_team, :penalty_minutes)} />
         <.stat_row label="PP" away={format_powerplay(@away_team)} home={format_powerplay(@home_team)} />
-        <.stat_row label="FO%" away={@away_team.faceoff_pct || "—"} home={@home_team.faceoff_pct || "—"} />
+        <.stat_row label="FO%" away={get_stat(@away_team, :faceoff_pct, "—")} home={get_stat(@home_team, :faceoff_pct, "—")} />
       </div>
     </div>
     """
+  end
+
+  # Safely get a stat value from a team map, with default
+  defp get_stat(team, key, default \\ 0) do
+    Map.get(team, key) || default
   end
 
   defp stat_row(assigns) do
@@ -349,12 +354,19 @@ defmodule YoganHockeyWeb.GamePlayComponents do
     """
   end
 
-  defp format_powerplay(%{powerplay_goals: goals, powerplay_opportunities: opps})
-       when is_integer(goals) and is_integer(opps) do
-    "#{goals}/#{opps}"
-  end
+  defp format_powerplay(team) do
+    goals = Map.get(team, :powerplay_goals)
+    opps = Map.get(team, :powerplay_opportunities)
 
-  defp format_powerplay(_), do: "—"
+    cond do
+      is_number(goals) and is_number(opps) ->
+        "#{trunc(goals)}/#{trunc(opps)}"
+      is_binary(Map.get(team, :power_play)) ->
+        team.power_play
+      true ->
+        "—"
+    end
+  end
 
   @doc """
   Scrollable play-by-play stream.
@@ -364,6 +376,10 @@ defmodule YoganHockeyWeb.GamePlayComponents do
   attr :away_team, :map, required: true
 
   def play_by_play_stream(assigns) do
+    # Reverse plays so newest appear first for live game experience
+    plays = Enum.reverse(assigns.plays || [])
+    assigns = assign(assigns, :reversed_plays, plays)
+
     ~H"""
     <div class="data-card p-3">
       <div class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-3">
@@ -371,12 +387,12 @@ defmodule YoganHockeyWeb.GamePlayComponents do
       </div>
 
       <div class="space-y-2 max-h-96 overflow-y-auto">
-        <%= if @plays == [] do %>
+        <%= if @reversed_plays == [] do %>
           <div class="text-xs text-base-content/50 text-center py-4">
             No plays yet
           </div>
         <% else %>
-          <%= for play <- Enum.take(@plays, 50) do %>
+          <%= for play <- Enum.take(@reversed_plays, 50) do %>
             <.play_item play={play} home_team={@home_team} away_team={@away_team} />
           <% end %>
         <% end %>
@@ -483,6 +499,83 @@ defmodule YoganHockeyWeb.GamePlayComponents do
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
       <p class="text-base-content/60 text-sm">Loading game data...</p>
       <p class="text-base-content/40 text-xs mt-1">Game ID: {@game_id}</p>
+    </div>
+    """
+  end
+
+  @doc """
+  Game header with loading state - shows teams and current period from game_info
+  while waiting for detailed game_data to load.
+  """
+  attr :game_info, :map, required: true
+
+  def game_header_loading(assigns) do
+    ~H"""
+    <div class="game-header featured-card p-4">
+      <div class="flex items-center justify-between">
+        <%!-- Away Team --%>
+        <div class="flex-1 flex items-center gap-3">
+          <div
+            class="w-12 h-12 sm:w-16 sm:h-16 rounded-lg flex items-center justify-center"
+            style={"background-color: ##{@game_info.away_team.color || "333"}20"}
+          >
+            <img
+              :if={@game_info.away_team.logo}
+              src={@game_info.away_team.logo}
+              alt={@game_info.away_team.name}
+              class="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+            />
+          </div>
+          <div>
+            <div class="text-xs text-base-content/50 uppercase tracking-wider">Away</div>
+            <div class="font-bold text-lg sm:text-xl">{@game_info.away_team.abbreviation}</div>
+            <div class="text-xs text-base-content/60 hidden sm:block">{@game_info.away_team.name}</div>
+          </div>
+        </div>
+
+        <%!-- Score & Status --%>
+        <div class="text-center px-4">
+          <div class="flex items-center gap-3 sm:gap-6">
+            <span class="text-3xl sm:text-5xl font-bold font-mono">{@game_info.away_team.score || 0}</span>
+            <span class="text-base-content/30 text-xl">-</span>
+            <span class="text-3xl sm:text-5xl font-bold font-mono">{@game_info.home_team.score || 0}</span>
+          </div>
+          <div class="mt-1">
+            <div class="flex items-center justify-center gap-2">
+              <span class="live-indicator"></span>
+              <span class="text-xs font-bold text-error">
+                {@game_info.status.detail}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Home Team --%>
+        <div class="flex-1 flex items-center gap-3 justify-end">
+          <div class="text-right">
+            <div class="text-xs text-base-content/50 uppercase tracking-wider">Home</div>
+            <div class="font-bold text-lg sm:text-xl">{@game_info.home_team.abbreviation}</div>
+            <div class="text-xs text-base-content/60 hidden sm:block">{@game_info.home_team.name}</div>
+          </div>
+          <div
+            class="w-12 h-12 sm:w-16 sm:h-16 rounded-lg flex items-center justify-center"
+            style={"background-color: ##{@game_info.home_team.color || "333"}20"}
+          >
+            <img
+              :if={@game_info.home_team.logo}
+              src={@game_info.home_team.logo}
+              alt={@game_info.home_team.name}
+              class="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+            />
+          </div>
+        </div>
+      </div>
+
+      <%!-- Loading indicator for stats --%>
+      <div class="flex justify-center items-center gap-2 mt-4 pt-4 border-t border-base-300/50 text-xs text-base-content/40">
+        <div class="inline-block animate-spin rounded-full h-3 w-3 border-b border-primary"></div>
+        <span>Loading live stats...</span>
+      </div>
     </div>
     """
   end
@@ -600,11 +693,10 @@ defmodule YoganHockeyWeb.GamePlayComponents do
 
     ~H"""
     <div class="data-card p-6 text-center">
-      <div class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-4">
-        Puck Drop In
-      </div>
-
       <%= if @has_valid_countdown do %>
+        <div class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-4">
+          Puck Drop In
+        </div>
         <%!-- Scoreboard style clock --%>
         <div class="scoreboard-clock inline-flex items-center justify-center bg-base-300 px-8 py-5 rounded-lg">
           <span class="text-5xl sm:text-7xl font-mono font-bold tabular-nums">{@formatted.hours}</span>
@@ -617,17 +709,26 @@ defmodule YoganHockeyWeb.GamePlayComponents do
           HR : MIN : SEC
         </div>
       <% else %>
-        <%!-- Game starting soon or scheduled time --%>
-        <div class="scoreboard-clock inline-flex items-center justify-center bg-base-300 px-8 py-5 rounded-lg">
-          <span class="text-5xl sm:text-7xl font-mono font-bold tabular-nums">00</span>
-          <span class="text-5xl sm:text-7xl font-mono font-bold text-primary mx-1 animate-pulse">:</span>
-          <span class="text-5xl sm:text-7xl font-mono font-bold tabular-nums">00</span>
-          <span class="text-5xl sm:text-7xl font-mono font-bold text-primary mx-1 animate-pulse">:</span>
-          <span class="text-5xl sm:text-7xl font-mono font-bold tabular-nums text-accent">00</span>
+        <%!-- Game starting soon - waiting for puck drop --%>
+        <div class="text-xs font-bold uppercase tracking-wider text-success mb-4 flex items-center justify-center gap-2">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+          </span>
+          Puck Drop Imminent
+        </div>
+        <div class="scoreboard-clock inline-flex items-center justify-center bg-base-300 px-8 py-5 rounded-lg border-2 border-success/30">
+          <span class="text-5xl sm:text-7xl font-mono font-bold tabular-nums text-success">00</span>
+          <span class="text-5xl sm:text-7xl font-mono font-bold text-success mx-1 animate-pulse">:</span>
+          <span class="text-5xl sm:text-7xl font-mono font-bold tabular-nums text-success">00</span>
+          <span class="text-5xl sm:text-7xl font-mono font-bold text-success mx-1 animate-pulse">:</span>
+          <span class="text-5xl sm:text-7xl font-mono font-bold tabular-nums text-success">00</span>
         </div>
         <div class="flex items-center justify-center gap-2 mt-4 text-sm text-base-content/60">
-          <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-          <span>{@scheduled_time || "Starting soon"}</span>
+          <span>Scheduled: {@scheduled_time || "Now"}</span>
+        </div>
+        <div class="text-xs text-base-content/40 mt-2 animate-pulse">
+          Checking for game start...
         </div>
       <% end %>
     </div>
@@ -657,7 +758,13 @@ defmodule YoganHockeyWeb.GamePlayComponents do
   @doc """
   Empty ice rink placeholder for pregame.
   """
+  attr :countdown, :integer, default: nil
+
   def ice_rink_placeholder(assigns) do
+    waiting_for_start = is_nil(assigns.countdown) || assigns.countdown <= 0
+
+    assigns = assign(assigns, :waiting_for_start, waiting_for_start)
+
     ~H"""
     <div class="data-card p-3">
       <div class="text-xs font-bold uppercase tracking-wider text-base-content/50 mb-2">
@@ -710,9 +817,24 @@ defmodule YoganHockeyWeb.GamePlayComponents do
 
         <%!-- Overlay message --%>
         <div class="absolute inset-0 flex items-center justify-center">
-          <div class="bg-base-100/90 px-4 py-2 rounded-lg text-sm text-base-content/60">
-            Waiting for puck drop...
-          </div>
+          <%= if @waiting_for_start do %>
+            <div class="bg-base-100/95 px-5 py-3 rounded-lg text-center">
+              <div class="flex items-center justify-center gap-2 text-sm text-success font-medium">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                </span>
+                Puck drop imminent
+              </div>
+              <div class="text-xs text-base-content/50 mt-1">
+                Live stats will appear here
+              </div>
+            </div>
+          <% else %>
+            <div class="bg-base-100/90 px-4 py-2 rounded-lg text-sm text-base-content/60">
+              Waiting for puck drop...
+            </div>
+          <% end %>
         </div>
       </div>
 

@@ -22,6 +22,7 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
   Starts a GamePlayServer for the given game ID.
   """
   def start_link(game_id) do
+    game_id = normalize_game_id(game_id)
     GenServer.start_link(__MODULE__, game_id, name: via_tuple(game_id))
   end
 
@@ -29,14 +30,20 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
   Returns the via tuple for Registry lookup.
   """
   def via_tuple(game_id) do
-    {:via, Registry, {YoganHockey.GamePlayRegistry, game_id}}
+    {:via, Registry, {YoganHockey.GamePlayRegistry, normalize_game_id(game_id)}}
   end
+
+  # Ensure game_id is always a string for consistent cache keys
+  defp normalize_game_id(game_id) when is_binary(game_id), do: game_id
+  defp normalize_game_id(game_id) when is_integer(game_id), do: Integer.to_string(game_id)
+  defp normalize_game_id(game_id), do: to_string(game_id)
 
   @doc """
   Registers a viewer process for the given game.
   Starts the server if not already running.
   """
   def register_viewer(game_id, viewer_pid) do
+    game_id = normalize_game_id(game_id)
     case Registry.lookup(YoganHockey.GamePlayRegistry, game_id) do
       [{pid, _}] ->
         GenServer.call(pid, {:register_viewer, viewer_pid})
@@ -63,6 +70,7 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
   Unregisters a viewer process.
   """
   def unregister_viewer(game_id, viewer_pid) do
+    game_id = normalize_game_id(game_id)
     case Registry.lookup(YoganHockey.GamePlayRegistry, game_id) do
       [{pid, _}] -> GenServer.cast(pid, {:unregister_viewer, viewer_pid})
       [] -> :ok
@@ -73,7 +81,7 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
   Gets the current game data.
   """
   def get_game_data(game_id) do
-    Cache.get(:game_play_data, game_id)
+    Cache.get(:game_play_data, normalize_game_id(game_id))
   end
 
   # Server Callbacks
@@ -86,7 +94,8 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
       game_id: game_id,
       viewers: MapSet.new(),
       monitors: %{},
-      shutdown_timer: nil
+      shutdown_timer: nil,
+      game_completed: false
     }
 
     # Initial fetch
@@ -103,6 +112,7 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
       {:reply, :ok, state}
     else
       ref = Process.monitor(viewer_pid)
+      was_empty = MapSet.size(state.viewers) == 0
 
       Logger.debug("Viewer registered for game #{state.game_id}, total: #{MapSet.size(state.viewers) + 1}")
 
@@ -111,6 +121,12 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
         | viewers: MapSet.put(state.viewers, viewer_pid),
           monitors: Map.put(state.monitors, ref, viewer_pid)
       }
+
+      # If this is the first viewer, trigger an immediate fetch
+      # This fixes the race condition where :poll runs before any viewers register
+      if was_empty do
+        send(self(), :poll)
+      end
 
       {:reply, :ok, state}
     end
@@ -123,12 +139,33 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
 
   @impl true
   def handle_info(:poll, state) do
-    if MapSet.size(state.viewers) > 0 do
-      fetch_and_broadcast(state.game_id)
-      schedule_poll()
-    end
+    cond do
+      # Game already completed - no need to poll, serve from cache
+      state.game_completed ->
+        Logger.debug("Game #{state.game_id} completed, skipping poll (serving from cache)")
+        {:noreply, state}
 
-    {:noreply, state}
+      # No viewers - don't poll
+      MapSet.size(state.viewers) == 0 ->
+        {:noreply, state}
+
+      # Active game with viewers - fetch and maybe continue polling
+      true ->
+        case fetch_and_broadcast(state.game_id) do
+          :completed ->
+            Logger.info("Game #{state.game_id} has ended, stopping live polling")
+            {:noreply, %{state | game_completed: true}}
+
+          :in_progress ->
+            schedule_poll()
+            {:noreply, state}
+
+          :error ->
+            # On error, keep trying
+            schedule_poll()
+            {:noreply, state}
+        end
+    end
   end
 
   @impl true
@@ -155,7 +192,13 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
 
   @impl true
   def terminate(_reason, state) do
-    Cache.delete(:game_play_data, state.game_id)
+    # Keep cache data for completed games so it's available without re-fetching
+    if state.game_completed do
+      Logger.debug("Preserving cache for completed game #{state.game_id}")
+    else
+      Cache.delete(:game_play_data, state.game_id)
+    end
+
     :ok
   end
 
@@ -196,20 +239,43 @@ defmodule YoganHockey.GamePlay.GamePlayServer do
     %{state | shutdown_timer: nil}
   end
 
+  # Returns :completed, :in_progress, or :error
   defp fetch_and_broadcast(game_id) do
+    Logger.debug("Fetching game summary for game #{game_id}")
+
     case APIClient.get_game_summary(game_id) do
       {:ok, data} ->
         game_data = Parsers.parse_game_summary(data)
-        Cache.put(:game_play_data, game_id, game_data)
 
-        Phoenix.PubSub.broadcast(
-          YoganHockey.PubSub,
-          "game_play:#{game_id}",
-          {:game_play_updated, game_data}
-        )
+        if game_data do
+          Logger.debug("Got game data for #{game_id}: status=#{inspect(game_data.status)}")
+          Cache.put(:game_play_data, game_id, game_data)
+
+          Phoenix.PubSub.broadcast(
+            YoganHockey.PubSub,
+            "game_play:#{game_id}",
+            {:game_play_updated, game_data}
+          )
+
+          # Check if game has ended
+          if game_completed?(game_data) do
+            :completed
+          else
+            :in_progress
+          end
+        else
+          Logger.warning("Failed to parse game summary for #{game_id} - boxscore may be missing")
+          :error
+        end
 
       {:error, reason} ->
         Logger.warning("Failed to fetch game summary for #{game_id}: #{inspect(reason)}")
+        :error
     end
   end
+
+  # Check if game is completed based on status
+  defp game_completed?(%{status: %{state: "post"}}), do: true
+  defp game_completed?(%{status: %{state: state}}) when state in ["final", "complete"], do: true
+  defp game_completed?(_), do: false
 end

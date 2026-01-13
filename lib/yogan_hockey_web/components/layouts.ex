@@ -74,13 +74,14 @@ defmodule YoganHockeyWeb.Layouts do
       </nav>
     </header>
 
-    <%!-- Mobile Menu --%>
-    <input type="checkbox" id="mobile-menu" class="hidden peer" />
-    <div
-      id="mobile-menu-panel"
-      phx-hook="MobileMenu"
-      class="fixed inset-0 z-40 hidden peer-checked:flex flex-col bg-base-100 md:hidden"
-    >
+    <%!-- Mobile Menu (ignored by LiveView to preserve checkbox state during re-renders) --%>
+    <div id="mobile-menu-container" phx-update="ignore">
+      <input type="checkbox" id="mobile-menu" class="hidden peer/menu" />
+      <div
+        id="mobile-menu-panel"
+        phx-hook="MobileMenu"
+        class="fixed inset-0 z-40 hidden peer-checked/menu:flex flex-col bg-base-100 md:hidden"
+      >
       <div class="flex items-center justify-between h-14 px-4 border-b border-base-300 bg-base-200">
         <span class="font-bold text-lg">Menu</span>
         <label for="mobile-menu" class="btn btn-ghost p-3 cursor-pointer">
@@ -96,6 +97,7 @@ defmodule YoganHockeyWeb.Layouts do
           <span class="live-indicator">Live Scores</span>
         </.link>
       </nav>
+      </div>
     </div>
 
     <%!-- Main Content --%>

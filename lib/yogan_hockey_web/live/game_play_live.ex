@@ -34,27 +34,42 @@ defmodule YoganHockeyWeb.GamePlayLive do
     end
   end
 
-  # Only start game server for in-progress or completed games
-  defp maybe_start_game_server(socket, %{status: %{state: state}})
-       when state in ["in", "post"] do
-    game_id = socket.assigns.game_id
-    Phoenix.PubSub.subscribe(YoganHockey.PubSub, "game_play:#{game_id}")
-    GamePlayServer.register_viewer(game_id, self())
+  # Determine how to handle the game based on its status
+  defp maybe_start_game_server(socket, game_info) do
+    cond do
+      # Game has started - connect to live updates
+      game_has_started?(game_info) ->
+        start_live_game(socket, game_info)
 
-    game_data = GamePlayServer.get_game_data(game_id)
-    assign(socket, :game_data, game_data)
-  end
+      # Game is pregame with valid date - start countdown
+      is_binary(game_info[:date]) ->
+        start_pregame_countdown(socket, game_info.date)
 
-  # For pregame, start countdown timer
-  defp maybe_start_game_server(socket, %{date: date_string} = _game_info) when is_binary(date_string) do
-    countdown = calculate_countdown(date_string)
-    if countdown && countdown > 0 do
-      Process.send_after(self(), :tick_countdown, 1000)
+      # Fallback
+      true ->
+        socket
     end
-    assign(socket, :countdown, countdown)
   end
 
-  defp maybe_start_game_server(socket, _game_info), do: socket
+  defp start_pregame_countdown(socket, date_string) do
+    # Subscribe to live scores to get notified when game status changes
+    Phoenix.PubSub.subscribe(YoganHockey.PubSub, "nhl:live_scores")
+
+    countdown = calculate_countdown(date_string)
+
+    cond do
+      countdown && countdown > 0 ->
+        # Game hasn't started - countdown to scheduled time
+        Process.send_after(self(), :tick_countdown, 1000)
+        assign(socket, :countdown, countdown)
+
+      true ->
+        # Game should have started by now but status is still "pre"
+        # Poll for game start every 10 seconds as backup
+        Process.send_after(self(), :check_game_start, 1000)
+        assign(socket, :countdown, 0)
+    end
+  end
 
   defp calculate_countdown(date_string) do
     # ESPN returns dates like "2026-01-13T00:00Z" (missing seconds)
@@ -90,6 +105,10 @@ defmodule YoganHockeyWeb.GamePlayLive do
     :ok
   end
 
+  # ============================================
+  # HANDLE_INFO CALLBACKS
+  # ============================================
+
   @impl true
   def handle_info(:tick_countdown, socket) do
     countdown = socket.assigns.countdown
@@ -99,11 +118,8 @@ defmodule YoganHockeyWeb.GamePlayLive do
         {:noreply, socket}
 
       countdown <= 0 ->
-        # Game should be starting - check for updates and potentially start server
-        game_info = NHL.get_game(socket.assigns.game_id)
-        socket = assign(socket, :game_info, game_info)
-        socket = maybe_start_game_server(socket, game_info)
-        {:noreply, socket}
+        # Countdown expired - check if game has started
+        check_game_status(socket)
 
       true ->
         Process.send_after(self(), :tick_countdown, 1000)
@@ -111,9 +127,112 @@ defmodule YoganHockeyWeb.GamePlayLive do
     end
   end
 
-  @impl true
+  # Periodically check if game has started (every 10 seconds after countdown expires)
+  def handle_info(:check_game_start, socket) do
+    check_game_status(socket)
+  end
+
+  # Game play data updated from GamePlayServer
   def handle_info({:game_play_updated, game_data}, socket) do
     {:noreply, assign(socket, :game_data, game_data)}
+  end
+
+  # Handle live scores update - check if our game has started
+  def handle_info({:live_scores_updated, games}, socket) do
+    # Only process if we don't already have game_data (still in pregame)
+    if socket.assigns.game_data do
+      {:noreply, socket}
+    else
+      game_id = socket.assigns.game_id
+
+      case Enum.find(games, &(to_string(&1.id) == to_string(game_id))) do
+        nil ->
+          {:noreply, socket}
+
+        game_info ->
+          if game_has_started?(game_info) do
+            # Game has started - transition to live mode
+            socket = start_live_game(socket, game_info)
+            {:noreply, socket}
+          else
+            # Update game info but game hasn't started yet
+            {:noreply, assign(socket, :game_info, game_info)}
+          end
+      end
+    end
+  end
+
+  # ============================================
+  # PRIVATE FUNCTIONS
+  # ============================================
+
+  defp check_game_status(socket) do
+    game_info = NHL.get_game(socket.assigns.game_id)
+    socket = assign(socket, :game_info, game_info)
+
+    if game_has_started?(game_info) do
+      # Game has started - subscribe to live updates
+      socket = start_live_game(socket, game_info)
+      {:noreply, socket}
+    else
+      # Game still hasn't started - keep checking every 10 seconds
+      Process.send_after(self(), :check_game_start, 10_000)
+      {:noreply, assign(socket, :countdown, 0)}
+    end
+  end
+
+  # Determines if game has started based on various status indicators
+  defp game_has_started?(nil), do: false
+
+  defp game_has_started?(%{status: status}) do
+    cond do
+      # Explicit state indicates in-progress or completed
+      status[:state] in ["in", "post"] ->
+        true
+
+      # Period > 0 means game has started
+      is_integer(status[:period]) and status[:period] > 0 ->
+        true
+
+      # Status detail contains period/intermission info
+      is_binary(status[:detail]) and game_in_progress_detail?(status[:detail]) ->
+        true
+
+      true ->
+        false
+    end
+  end
+
+  defp game_has_started?(_), do: false
+
+  # Check if status detail indicates game is in progress
+  defp game_in_progress_detail?(detail) do
+    detail_lower = String.downcase(detail)
+
+    Enum.any?([
+      String.contains?(detail_lower, "1st"),
+      String.contains?(detail_lower, "2nd"),
+      String.contains?(detail_lower, "3rd"),
+      String.contains?(detail_lower, "ot"),
+      String.contains?(detail_lower, "overtime"),
+      String.contains?(detail_lower, "shootout"),
+      String.contains?(detail_lower, "so"),
+      String.contains?(detail_lower, "end of"),
+      String.contains?(detail_lower, "final"),
+      String.contains?(detail_lower, "intermission")
+    ])
+  end
+
+  defp start_live_game(socket, game_info) do
+    game_id = socket.assigns.game_id
+    Phoenix.PubSub.subscribe(YoganHockey.PubSub, "game_play:#{game_id}")
+    GamePlayServer.register_viewer(game_id, self())
+
+    game_data = GamePlayServer.get_game_data(game_id)
+
+    socket
+    |> assign(:game_info, game_info)
+    |> assign(:game_data, game_data)
   end
 
   @impl true
@@ -174,6 +293,11 @@ defmodule YoganHockeyWeb.GamePlayLive do
 
   @impl true
   def render(assigns) do
+    # Determine if game has started based on game_info status
+    game_started = game_has_started?(assigns.game_info)
+
+    assigns = assign(assigns, :game_started, game_started)
+
     ~H"""
     <div class="space-y-4">
       <%= cond do %>
@@ -220,6 +344,23 @@ defmodule YoganHockeyWeb.GamePlayLive do
             Updated: {format_datetime(@game_data.last_updated)}
           </div>
 
+        <% @game_started and @game_info -> %>
+          <%!-- Game started but waiting for detailed data --%>
+          <.game_header_loading game_info={@game_info} />
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="lg:col-span-2 space-y-4">
+              <.loading_state game_id={@game_id} />
+            </div>
+
+            <div class="space-y-4">
+              <div class="data-card p-8 text-center">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary mb-3"></div>
+                <p class="text-sm text-base-content/60">Loading live stats...</p>
+              </div>
+            </div>
+          </div>
+
         <% @game_info -> %>
           <%!-- Pregame state with countdown --%>
           <.pregame_header
@@ -234,7 +375,7 @@ defmodule YoganHockeyWeb.GamePlayLive do
 
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div class="lg:col-span-2 space-y-4">
-              <.ice_rink_placeholder />
+              <.ice_rink_placeholder countdown={@countdown} />
             </div>
 
             <div class="space-y-4">
