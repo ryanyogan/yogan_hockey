@@ -1,6 +1,6 @@
-defmodule YoganHockey.Anthropic do
+defmodule YoganHockey.OpenAI do
   @moduledoc """
-  Client for Anthropic Claude API.
+  Client for OpenAI GPT API.
 
   Provides high-level functions for AI-powered hockey predictions.
   """
@@ -142,7 +142,7 @@ defmodule YoganHockey.Anthropic do
           cup_favorite: data["cup_favorite"],
           analysis: data["analysis"],
           generated_at: DateTime.utc_now(),
-          model: "claude-sonnet-4-20250514"
+          model: "gpt-5.5"
         }
         {:ok, prediction}
 
@@ -168,7 +168,6 @@ defmodule YoganHockey.Anthropic do
   end
 
   defp extract_large_json(str) do
-    # Find JSON object that may contain nested objects/arrays
     case Regex.run(~r/\{[\s\S]*\}/m, str, capture: :first) do
       [json] -> json
       nil -> str
@@ -248,7 +247,6 @@ defmodule YoganHockey.Anthropic do
   defp format_record(_), do: "Unknown"
 
   defp parse_prediction_response(response, home_team, away_team) do
-    # Try to extract JSON from the response
     json_str =
       response
       |> String.trim()
@@ -265,20 +263,18 @@ defmodule YoganHockey.Anthropic do
           predicted_games: data["predicted_games"],
           reasoning: data["reasoning"],
           generated_at: DateTime.utc_now(),
-          model: "claude-sonnet-4-20250514"
+          model: "gpt-5.5"
         }
 
         {:ok, prediction}
 
       {:error, _} ->
         Logger.warning("Failed to parse prediction JSON: #{response}")
-        # Return a fallback prediction
         {:ok, fallback_prediction(home_team, away_team)}
     end
   end
 
   defp extract_json(str) do
-    # Try to find JSON object in the string
     case Regex.run(~r/\{[^{}]*\}/, str, capture: :first) do
       [json] -> json
       nil -> str
@@ -357,7 +353,6 @@ defmodule YoganHockey.Anthropic do
         winner_abbrev = data["winner"]
         win_prob = (data["win_probability"] || 50) / 100
 
-        # Determine which team is the predicted winner
         {predicted_winner, predicted_loser, winner_prob, loser_prob} =
           if winner_abbrev == game.home_team.abbreviation do
             {game.home_team, game.away_team, win_prob, 1 - win_prob}
@@ -376,7 +371,7 @@ defmodule YoganHockey.Anthropic do
           away_team: game.away_team.abbreviation,
           current_score: "#{game.away_team.score}-#{game.home_team.score}",
           generated_at: DateTime.utc_now(),
-          model: "claude-sonnet-4-20250514"
+          model: "gpt-5.5"
         }
 
         {:ok, prediction}
@@ -388,7 +383,6 @@ defmodule YoganHockey.Anthropic do
   end
 
   defp fallback_live_game_prediction(game) do
-    # Simple fallback: team with more goals is predicted to win
     {winner, loser, win_prob} =
       cond do
         game.home_team.score > game.away_team.score ->
@@ -398,7 +392,6 @@ defmodule YoganHockey.Anthropic do
           {game.away_team, game.home_team, 0.65}
 
         true ->
-          # Tie - slight home advantage
           {game.home_team, game.away_team, 0.52}
       end
 
@@ -418,6 +411,6 @@ defmodule YoganHockey.Anthropic do
   end
 
   defp adapter do
-    Application.get_env(:yogan_hockey, :anthropic_adapter, YoganHockey.HTTP.AnthropicHTTPAdapter)
+    Application.get_env(:yogan_hockey, :openai_adapter, YoganHockey.HTTP.OpenAIHTTPAdapter)
   end
 end

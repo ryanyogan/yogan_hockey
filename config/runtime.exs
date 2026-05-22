@@ -26,9 +26,9 @@ if System.get_env("PHX_SERVER") do
   config :yogan_hockey, YoganHockeyWeb.Endpoint, server: true
 end
 
-# Anthropic API key for AI predictions
-if api_key = System.get_env("ANTHROPIC_API_KEY") do
-  config :yogan_hockey, :anthropic_api_key, api_key
+# OpenAI API key for AI predictions
+if api_key = System.get_env("OPENAI_API_KEY") do
+  config :yogan_hockey, :openai_api_key, api_key
 end
 
 if config_env() == :prod do

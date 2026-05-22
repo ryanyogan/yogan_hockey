@@ -3,15 +3,15 @@ defmodule YoganHockey.Playoffs.PredictionServerTest do
 
   alias YoganHockey.Playoffs.PredictionServer
   alias YoganHockey.Cache
-  alias YoganHockey.HTTP.MockAnthropicAdapter
+  alias YoganHockey.HTTP.MockOpenAIAdapter
   alias YoganHockey.HTTP.MockAdapter
 
   setup do
     # Start mock adapters
-    {:ok, _} = MockAnthropicAdapter.start_link()
+    {:ok, _} = MockOpenAIAdapter.start_link()
     {:ok, _} = MockAdapter.start_link()
 
-    Application.put_env(:yogan_hockey, :anthropic_adapter, MockAnthropicAdapter)
+    Application.put_env(:yogan_hockey, :openai_adapter, MockOpenAIAdapter)
     Application.put_env(:yogan_hockey, :http_adapter, MockAdapter)
 
     # Setup mock standings response
@@ -78,7 +78,7 @@ defmodule YoganHockey.Playoffs.PredictionServerTest do
 
       # Now safe to stop the mock adapters
       try do
-        MockAnthropicAdapter.stop()
+        MockOpenAIAdapter.stop()
       catch
         :exit, _ -> :ok
       end
@@ -89,7 +89,7 @@ defmodule YoganHockey.Playoffs.PredictionServerTest do
         :exit, _ -> :ok
       end
 
-      Application.delete_env(:yogan_hockey, :anthropic_adapter)
+      Application.delete_env(:yogan_hockey, :openai_adapter)
       Application.delete_env(:yogan_hockey, :http_adapter)
     end)
 
@@ -136,8 +136,8 @@ defmodule YoganHockey.Playoffs.PredictionServerTest do
 
   describe "auto-generation on startup" do
     test "generates predictions when none exist in cache" do
-      # Setup mock Anthropic response for playoff picture
-      MockAnthropicAdapter.expect({:ok, playoff_picture_response()})
+      # Setup mock OpenAI response for playoff picture
+      MockOpenAIAdapter.expect({:ok, playoff_picture_response()})
 
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "playoffs:updates")
 
@@ -162,8 +162,8 @@ defmodule YoganHockey.Playoffs.PredictionServerTest do
       # Wait for initial check
       Process.sleep(6000)
 
-      # Anthropic should not have been called
-      assert MockAnthropicAdapter.call_count() == 0
+      # OpenAI should not have been called
+      assert MockOpenAIAdapter.call_count() == 0
     end
   end
 
@@ -178,7 +178,7 @@ defmodule YoganHockey.Playoffs.PredictionServerTest do
         generated_at: DateTime.utc_now()
       })
 
-      MockAnthropicAdapter.expect({:ok, playoff_picture_response()})
+      MockOpenAIAdapter.expect({:ok, playoff_picture_response()})
 
       {:ok, _pid} = PredictionServer.start_link([])
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "playoffs:updates")
@@ -224,7 +224,7 @@ defmodule YoganHockey.Playoffs.PredictionServerTest do
       Cache.put(:nhl_standings, :current, sample_standings())
       Cache.put(:nhl_teams, :all, sample_teams())
 
-      MockAnthropicAdapter.expect({:ok, playoff_picture_response()})
+      MockOpenAIAdapter.expect({:ok, playoff_picture_response()})
 
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "playoffs:updates")
 
@@ -238,7 +238,7 @@ defmodule YoganHockey.Playoffs.PredictionServerTest do
       Cache.put(:nhl_standings, :current, sample_standings())
       Cache.put(:nhl_teams, :all, sample_teams())
 
-      MockAnthropicAdapter.expect({:ok, playoff_picture_response()})
+      MockOpenAIAdapter.expect({:ok, playoff_picture_response()})
 
       Phoenix.PubSub.subscribe(YoganHockey.PubSub, "playoffs:updates")
 

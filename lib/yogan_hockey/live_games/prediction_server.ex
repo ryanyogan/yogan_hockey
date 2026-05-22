@@ -12,7 +12,7 @@ defmodule YoganHockey.LiveGames.PredictionServer do
 
   require Logger
 
-  alias YoganHockey.{Cache, Anthropic}
+  alias YoganHockey.{Cache, OpenAI}
   alias YoganHockey.Cluster.Primary
 
   @pubsub YoganHockey.PubSub
@@ -211,7 +211,7 @@ defmodule YoganHockey.LiveGames.PredictionServer do
     game_id = game.id
 
     Task.Supervisor.start_child(YoganHockey.TaskSupervisor, fn ->
-      result = Anthropic.predict_live_game_winner(game)
+      result = OpenAI.predict_live_game_winner(game)
       send(parent, {:prediction_complete, game_id, result})
     end)
   end

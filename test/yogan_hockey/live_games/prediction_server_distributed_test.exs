@@ -12,7 +12,7 @@ defmodule YoganHockey.LiveGames.PredictionServerDistributedTest do
   alias YoganHockey.LiveGames.PredictionServer
   alias YoganHockey.Cluster.Primary
   alias YoganHockey.Cache
-  alias YoganHockey.HTTP.MockAnthropicAdapter
+  alias YoganHockey.HTTP.MockOpenAIAdapter
 
   defp sample_game(id) do
     %{
@@ -40,9 +40,9 @@ defmodule YoganHockey.LiveGames.PredictionServerDistributedTest do
     original_fly_region = System.get_env("FLY_REGION")
     original_primary_region = System.get_env("PRIMARY_REGION")
 
-    # Start mock Anthropic adapter
-    {:ok, _} = MockAnthropicAdapter.start_link()
-    Application.put_env(:yogan_hockey, :anthropic_adapter, MockAnthropicAdapter)
+    # Start mock OpenAI adapter
+    {:ok, _} = MockOpenAIAdapter.start_link()
+    Application.put_env(:yogan_hockey, :openai_adapter, MockOpenAIAdapter)
 
     # Clear caches
     Enum.each(Cache.tables(), fn table ->
@@ -65,8 +65,8 @@ defmodule YoganHockey.LiveGames.PredictionServerDistributedTest do
           end
       end
 
-      MockAnthropicAdapter.stop()
-      Application.delete_env(:yogan_hockey, :anthropic_adapter)
+      MockOpenAIAdapter.stop()
+      Application.delete_env(:yogan_hockey, :openai_adapter)
 
       # Restore env vars
       if original_fly_region do
@@ -93,7 +93,7 @@ defmodule YoganHockey.LiveGames.PredictionServerDistributedTest do
 
       assert Primary.primary?() == true
 
-      MockAnthropicAdapter.expect(
+      MockOpenAIAdapter.expect(
         {:ok, ~s|{"winner": "TOR", "win_probability": 65, "loser": "MTL", "lose_probability": 35}|}
       )
 
@@ -125,8 +125,8 @@ defmodule YoganHockey.LiveGames.PredictionServerDistributedTest do
       # The actual cast fails silently because no primary is available
       assert result == :ok
 
-      # Anthropic should not have been called (no local execution)
-      assert MockAnthropicAdapter.call_count() == 0
+      # OpenAI should not have been called (no local execution)
+      assert MockOpenAIAdapter.call_count() == 0
     end
   end
 
@@ -137,7 +137,7 @@ defmodule YoganHockey.LiveGames.PredictionServerDistributedTest do
 
       assert Primary.primary?() == true
 
-      MockAnthropicAdapter.expect(
+      MockOpenAIAdapter.expect(
         {:ok, ~s|{"winner": "MTL", "win_probability": 55, "loser": "TOR", "lose_probability": 45}|}
       )
 
@@ -211,7 +211,7 @@ defmodule YoganHockey.LiveGames.PredictionServerDistributedTest do
     test "casts to local GenServer" do
       System.delete_env("FLY_REGION")
 
-      MockAnthropicAdapter.expect(
+      MockOpenAIAdapter.expect(
         {:ok, ~s|{"winner": "TOR", "win_probability": 70, "loser": "MTL", "lose_probability": 30}|}
       )
 
@@ -232,7 +232,7 @@ defmodule YoganHockey.LiveGames.PredictionServerDistributedTest do
     test "casts to local GenServer" do
       System.delete_env("FLY_REGION")
 
-      MockAnthropicAdapter.expect(
+      MockOpenAIAdapter.expect(
         {:ok, ~s|{"winner": "MTL", "win_probability": 60, "loser": "TOR", "lose_probability": 40}|}
       )
 

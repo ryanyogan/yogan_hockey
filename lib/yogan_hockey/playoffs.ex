@@ -8,7 +8,7 @@ defmodule YoganHockey.Playoffs do
 
   require Logger
 
-  alias YoganHockey.{Cache, NHL, Anthropic}
+  alias YoganHockey.{Cache, NHL, OpenAI}
   alias YoganHockey.NHL.APIClient
 
   @doc """
@@ -46,7 +46,7 @@ defmodule YoganHockey.Playoffs do
       Logger.warning("No standings data available for playoff picture")
       {:error, :no_standings_data}
     else
-      case Anthropic.predict_playoff_picture(standings) do
+      case OpenAI.predict_playoff_picture(standings) do
         {:ok, prediction} ->
           # Enrich with team logos and additional data
           enriched = enrich_playoff_picture(prediction)
@@ -345,7 +345,7 @@ defmodule YoganHockey.Playoffs do
          {:ok, matchup} <- find_matchup(bracket, series_id),
          {:ok, home_team_data} <- get_team_with_stats(matchup.home.id),
          {:ok, away_team_data} <- get_team_with_stats(matchup.away.id),
-         {:ok, prediction} <- Anthropic.predict_series_outcome(home_team_data, away_team_data) do
+         {:ok, prediction} <- OpenAI.predict_series_outcome(home_team_data, away_team_data) do
       prediction = Map.put(prediction, :series_id, series_id)
       Cache.put(:playoffs_predictions, series_id, prediction)
       {:ok, prediction}

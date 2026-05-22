@@ -3,7 +3,7 @@ defmodule YoganHockey.LiveGames.PredictionServerTest do
 
   alias YoganHockey.LiveGames.PredictionServer
   alias YoganHockey.Cache
-  alias YoganHockey.HTTP.MockAnthropicAdapter
+  alias YoganHockey.HTTP.MockOpenAIAdapter
 
   # Sample game data for testing
   defp sample_game(id, state \\ "in", away_score \\ 2, home_score \\ 1) do
@@ -28,9 +28,8 @@ defmodule YoganHockey.LiveGames.PredictionServerTest do
   end
 
   setup do
-    # Start mock Anthropic adapter
-    {:ok, _} = MockAnthropicAdapter.start_link()
-    Application.put_env(:yogan_hockey, :anthropic_adapter, MockAnthropicAdapter)
+    {:ok, _} = MockOpenAIAdapter.start_link()
+    Application.put_env(:yogan_hockey, :openai_adapter, MockOpenAIAdapter)
 
     # Clear caches
     Enum.each(Cache.tables(), fn table ->
@@ -53,8 +52,8 @@ defmodule YoganHockey.LiveGames.PredictionServerTest do
           end
       end
 
-      MockAnthropicAdapter.stop()
-      Application.delete_env(:yogan_hockey, :anthropic_adapter)
+      MockOpenAIAdapter.stop()
+      Application.delete_env(:yogan_hockey, :openai_adapter)
     end)
 
     :ok
@@ -128,7 +127,7 @@ defmodule YoganHockey.LiveGames.PredictionServerTest do
 
   describe "ensure_predictions/1" do
     test "generates predictions for games without existing predictions" do
-      MockAnthropicAdapter.expect(
+      MockOpenAIAdapter.expect(
         {:ok, ~s|{"winner": "TOR", "win_probability": 65, "loser": "MTL", "lose_probability": 35}|}
       )
 
@@ -159,16 +158,16 @@ defmodule YoganHockey.LiveGames.PredictionServerTest do
 
       # Should still have the original prediction
       assert PredictionServer.get_prediction("game123") == existing_prediction
-      assert MockAnthropicAdapter.call_count() == 0
+      assert MockOpenAIAdapter.call_count() == 0
     end
   end
 
   describe "score change detection" do
     test "regenerates prediction when score changes" do
-      MockAnthropicAdapter.expect(
+      MockOpenAIAdapter.expect(
         {:ok, ~s|{"winner": "TOR", "win_probability": 60, "loser": "MTL", "lose_probability": 40}|}
       )
-      MockAnthropicAdapter.expect(
+      MockOpenAIAdapter.expect(
         {:ok, ~s|{"winner": "MTL", "win_probability": 55, "loser": "TOR", "lose_probability": 45}|}
       )
 
@@ -222,14 +221,14 @@ defmodule YoganHockey.LiveGames.PredictionServerTest do
       )
       Process.sleep(200)
 
-      # Anthropic should not have been called
-      assert MockAnthropicAdapter.call_count() == 0
+      # OpenAI should not have been called
+      assert MockOpenAIAdapter.call_count() == 0
     end
   end
 
   describe "PubSub broadcasting" do
     test "broadcasts prediction_updated when prediction is generated" do
-      MockAnthropicAdapter.expect(
+      MockOpenAIAdapter.expect(
         {:ok, ~s|{"winner": "TOR", "win_probability": 70, "loser": "MTL", "lose_probability": 30}|}
       )
 

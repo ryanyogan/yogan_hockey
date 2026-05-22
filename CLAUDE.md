@@ -22,7 +22,7 @@ mix test --cover                            # Run with coverage
 
 GenServers are disabled in test environment (`config :yogan_hockey, start_genservers: false`). Mock adapters in `test/support/`:
 - `YoganHockey.HTTP.MockAdapter` - Mock ESPN API responses
-- `YoganHockey.HTTP.MockAnthropicAdapter` - Mock Claude AI responses
+- `YoganHockey.HTTP.MockOpenAIAdapter` - Mock OpenAI GPT responses
 
 ## Architecture
 
@@ -61,7 +61,7 @@ HTTP clients use behaviour-based adapters for testability:
 ```elixir
 # Configure in config/config.exs or config/test.exs
 config :yogan_hockey, :http_adapter, YoganHockey.HTTP.ReqAdapter
-config :yogan_hockey, :anthropic_adapter, YoganHockey.HTTP.AnthropicHTTPAdapter
+config :yogan_hockey, :openai_adapter, YoganHockey.HTTP.OpenAIHTTPAdapter
 ```
 
 ## Code Organization
@@ -85,8 +85,8 @@ Playoffs.get_bracket()
 Playoffs.get_playoff_picture()
 
 # AI predictions
-Anthropic.predict_live_game_winner(game)
-Anthropic.predict_series_outcome(home, away)
+OpenAI.predict_live_game_winner(game)
+OpenAI.predict_series_outcome(home, away)
 ```
 
 ## Project Guidelines

@@ -1,10 +1,10 @@
-defmodule YoganHockey.HTTP.MockAnthropicAdapter do
+defmodule YoganHockey.HTTP.MockOpenAIAdapter do
   @moduledoc """
-  Mock Anthropic adapter for testing AI prediction functionality.
+  Mock OpenAI adapter for testing AI prediction functionality.
   Uses Agent to store expected responses.
   """
 
-  @behaviour YoganHockey.HTTP.AnthropicAdapter
+  @behaviour YoganHockey.HTTP.OpenAIAdapter
 
   def start_link do
     Agent.start_link(fn -> %{responses: [], call_count: 0} end, name: __MODULE__)
@@ -50,7 +50,6 @@ defmodule YoganHockey.HTTP.MockAnthropicAdapter do
   def chat_completion(_messages, _opts \\ []) do
     case Process.whereis(__MODULE__) do
       nil ->
-        # Mock adapter not running - return error gracefully
         {:error, :mock_not_running}
 
       _pid ->
@@ -59,7 +58,6 @@ defmodule YoganHockey.HTTP.MockAnthropicAdapter do
 
           case state.responses do
             [] ->
-              # Return a default mock response if no expectations set
               {default_response(), %{state | call_count: new_count}}
 
             [response | rest] ->

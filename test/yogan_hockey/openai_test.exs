@@ -1,16 +1,16 @@
-defmodule YoganHockey.AnthropicTest do
+defmodule YoganHockey.OpenAITest do
   use ExUnit.Case, async: false
 
-  alias YoganHockey.Anthropic
-  alias YoganHockey.HTTP.MockAnthropicAdapter
+  alias YoganHockey.OpenAI
+  alias YoganHockey.HTTP.MockOpenAIAdapter
 
   setup do
-    {:ok, _} = MockAnthropicAdapter.start_link()
-    Application.put_env(:yogan_hockey, :anthropic_adapter, MockAnthropicAdapter)
+    {:ok, _} = MockOpenAIAdapter.start_link()
+    Application.put_env(:yogan_hockey, :openai_adapter, MockOpenAIAdapter)
 
     on_exit(fn ->
-      MockAnthropicAdapter.stop()
-      Application.delete_env(:yogan_hockey, :anthropic_adapter)
+      MockOpenAIAdapter.stop()
+      Application.delete_env(:yogan_hockey, :openai_adapter)
     end)
 
     :ok
@@ -18,7 +18,7 @@ defmodule YoganHockey.AnthropicTest do
 
   describe "predict_live_game_winner/2" do
     test "returns prediction for a live game" do
-      MockAnthropicAdapter.expect(
+      MockOpenAIAdapter.expect(
         {:ok, ~s|{"winner": "TOR", "win_probability": 65, "loser": "MTL", "lose_probability": 35}|}
       )
 
@@ -39,7 +39,7 @@ defmodule YoganHockey.AnthropicTest do
         }
       }
 
-      assert {:ok, prediction} = Anthropic.predict_live_game_winner(game)
+      assert {:ok, prediction} = OpenAI.predict_live_game_winner(game)
       assert prediction.game_id == "game123"
       assert prediction.predicted_winner == "TOR"
       assert prediction.winner_probability == 0.65
@@ -48,7 +48,7 @@ defmodule YoganHockey.AnthropicTest do
     end
 
     test "returns fallback prediction on parse error" do
-      MockAnthropicAdapter.expect({:ok, "invalid json response"})
+      MockOpenAIAdapter.expect({:ok, "invalid json response"})
 
       game = %{
         id: "game456",
@@ -67,7 +67,7 @@ defmodule YoganHockey.AnthropicTest do
         }
       }
 
-      assert {:ok, prediction} = Anthropic.predict_live_game_winner(game)
+      assert {:ok, prediction} = OpenAI.predict_live_game_winner(game)
       assert prediction.game_id == "game456"
       assert prediction.model == "fallback"
       # Fallback favors team with more goals
@@ -75,7 +75,7 @@ defmodule YoganHockey.AnthropicTest do
     end
 
     test "returns error when API fails" do
-      MockAnthropicAdapter.expect({:error, :api_error})
+      MockOpenAIAdapter.expect({:error, :api_error})
 
       game = %{
         id: "game789",
@@ -84,13 +84,13 @@ defmodule YoganHockey.AnthropicTest do
         home_team: %{abbreviation: "DET", score: 2, logo: nil, records: %{"total" => "22-28-5"}}
       }
 
-      assert {:error, :api_error} = Anthropic.predict_live_game_winner(game)
+      assert {:error, :api_error} = OpenAI.predict_live_game_winner(game)
     end
   end
 
   describe "predict_series_outcome/3" do
     test "returns series prediction" do
-      MockAnthropicAdapter.expect(
+      MockOpenAIAdapter.expect(
         {:ok, ~s|{
           "home_win_probability": 55,
           "away_win_probability": 45,
@@ -112,7 +112,7 @@ defmodule YoganHockey.AnthropicTest do
         stats: %{wins: 48, losses: 22, ot_losses: 5, points: 101}
       }
 
-      assert {:ok, prediction} = Anthropic.predict_series_outcome(home_team, away_team)
+      assert {:ok, prediction} = OpenAI.predict_series_outcome(home_team, away_team)
       assert prediction.home_win_prob == 0.55
       assert prediction.away_win_prob == 0.45
       assert prediction.predicted_winner == "Florida Panthers"
@@ -120,12 +120,12 @@ defmodule YoganHockey.AnthropicTest do
     end
 
     test "returns fallback prediction on parse error" do
-      MockAnthropicAdapter.expect({:ok, "not valid json"})
+      MockOpenAIAdapter.expect({:ok, "not valid json"})
 
       home_team = %{id: "1", name: "Team A"}
       away_team = %{id: "2", name: "Team B"}
 
-      assert {:ok, prediction} = Anthropic.predict_series_outcome(home_team, away_team)
+      assert {:ok, prediction} = OpenAI.predict_series_outcome(home_team, away_team)
       assert prediction.model == "fallback"
       assert prediction.home_win_prob == 0.5
       assert prediction.away_win_prob == 0.5
@@ -134,7 +134,7 @@ defmodule YoganHockey.AnthropicTest do
 
   describe "predict_playoff_picture/2" do
     test "returns playoff picture prediction" do
-      MockAnthropicAdapter.expect({:ok, ~s|{
+      MockOpenAIAdapter.expect({:ok, ~s|{
         "eastern": [
           {"team_id": "1", "team_name": "Florida Panthers", "seed": 1, "playoff_prob": 99, "round2_prob": 75, "conf_final_prob": 50, "cup_final_prob": 30, "cup_win_prob": 15}
         ],
@@ -158,7 +158,7 @@ defmodule YoganHockey.AnthropicTest do
         }
       ]
 
-      assert {:ok, prediction} = Anthropic.predict_playoff_picture(standings)
+      assert {:ok, prediction} = OpenAI.predict_playoff_picture(standings)
       assert prediction.cup_favorite == "Florida Panthers"
       assert length(prediction.eastern) == 1
       assert length(prediction.western) == 1
@@ -169,11 +169,11 @@ defmodule YoganHockey.AnthropicTest do
     end
 
     test "returns error on API failure" do
-      MockAnthropicAdapter.expect({:error, :network_error})
+      MockOpenAIAdapter.expect({:error, :network_error})
 
       standings = [%{conference: "Eastern", team: %{id: "1"}, stats: []}]
 
-      assert {:error, :network_error} = Anthropic.predict_playoff_picture(standings)
+      assert {:error, :network_error} = OpenAI.predict_playoff_picture(standings)
     end
   end
 end

@@ -1,6 +1,6 @@
-defmodule YoganHockey.HTTP.AnthropicAdapter do
+defmodule YoganHockey.HTTP.OpenAIAdapter do
   @moduledoc """
-  Behaviour for Anthropic API calls.
+  Behaviour for OpenAI API calls.
 
   This abstraction allows for easy testing and swapping of implementations.
   """
@@ -9,7 +9,7 @@ defmodule YoganHockey.HTTP.AnthropicAdapter do
   @type response :: {:ok, String.t()} | {:error, term()}
 
   @doc """
-  Sends a chat completion request to the Anthropic API.
+  Sends a chat completion request to the OpenAI API.
 
   Returns the text response from the model.
   """
